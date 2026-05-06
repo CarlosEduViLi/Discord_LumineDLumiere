@@ -51,8 +51,9 @@ Construída sobre **Lavalink + Wavelink**, a Lumine entrega áudio de alta quali
 - Frases exclusivas da Lumine para cada situação~ 🌸
 
 ### 🎲 Extras
-- **Sistema de café** — peça um cafézinho para a Lumine!
-- **Dados** — role dados de qualquer tipo: `l!dado 20`
+- **Sistema de café** — trabalhe, compre ingredientes, prepare bebidas e atenda clientes!
+- **Dados** — role dados de qualquer tipo: `l!roll 2d6+3`
+- **Curiosidades Pokémon** — descubra fatos sobre qualquer Pokémon via PokéAPI~ 🎮
 
 ---
 
@@ -147,6 +148,38 @@ A Lumine vai subir o Lavalink automaticamente e se conectar ao Discord~ 💙
 | `l!pl rename <nome> <novo>` | Renomeia com carinho ✏️ |
 | `l!pl loop` | Loop da fila inteira 🔁 |
 
+### 🎮 Pokémon
+
+| Comando | Descrição |
+|---|---|
+| `l!pokemon` | Curiosidade sobre um Pokémon **aleatório** 🎲 |
+| `l!pokemon <nome>` | Busca por nome — ex: `l!pokemon charizard` |
+| `l!pokemon <número>` | Busca por número — ex: `l!pokemon 006` |
+
+> Exibe tipo, geração, habilidades, texto da Pokédex (sorteado aleatoriamente entre os jogos), stats com barra visual e badge de Lendário/Mítico. Aliases: `l!pokedex`, `l!poke`.
+
+### ☕ Café da Lumine
+
+| Comando | Descrição |
+|---|---|
+| `l!trabalhar` | Ganhe Lumicoins (cooldown 30 min) 💼 |
+| `l!loja` | Ingredientes à venda 🏪 |
+| `l!comprar <item> [qtd]` | Compre ingredientes 🛍️ |
+| `l!cardapio` | Veja receitas e preços 📋 |
+| `l!preparar <bebida>` | Prepare uma bebida ☕ |
+| `l!vender <bebida>` | Venda do estoque 💰 |
+| `l!atender [bebida]` | Atenda um cliente especial 👥 |
+| `l!cafe` | Seu perfil de barista ⭐ |
+| `l!ranking cafe` | Top 10 baristas 🏆 |
+
+### 🎲 Dados
+
+| Comando | Descrição |
+|---|---|
+| `l!roll <expressão>` | Ex: `l!roll 1d20+5`, `l!roll 5#3d6` 🎲 |
+
+> **Atalho mágico:** mande só a expressão no chat (ex: `2d6`) e a Lumine rola automaticamente!
+
 ---
 
 ## 🗂️ Estrutura do Projeto
@@ -166,7 +199,10 @@ Discord_LumineDLumiere/
     ├── playlists.py     # Sistema de playlists 📋
     ├── playlists.json   # Dados salvos das playlists
     ├── cafe.py          # Sistema de café ☕
+    ├── cafe_core.py     # Lógica e dados do café
+    ├── cafe_data.json   # Dados persistidos dos usuários
     ├── dice.py          # Dados 🎲
+    ├── pokemon.py       # Curiosidades Pokémon via PokéAPI 🎮
     └── help.py          # Sistema de ajuda 💙
 ```
 
@@ -180,6 +216,8 @@ Discord_LumineDLumiere/
 | [Wavelink 3.x](https://wavelink.dev) | Wrapper para o Lavalink |
 | [Lavalink 4.x](https://github.com/lavalink-devs/Lavalink) | Servidor de áudio de alta performance |
 | [python-dotenv](https://github.com/theskumar/python-dotenv) | Leitura do `.env` |
+| [aiohttp](https://docs.aiohttp.org) | Requisições HTTP assíncronas (PokéAPI) |
+| [PokéAPI](https://pokeapi.co) | Dados de Pokémon — gratuita, sem autenticação |
 
 ---
 

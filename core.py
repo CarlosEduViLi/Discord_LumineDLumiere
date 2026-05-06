@@ -28,19 +28,6 @@ def is_port_open(host: str, port: int) -> bool:
 
 
 # ------------------------------------------------------------
-# Spotify
-# ------------------------------------------------------------
-# A autenticação do Spotify é feita inteiramente pelo plugin LavaSrc do
-# Lavalink, usando o fluxo OAuth client_credentials com o clientId e
-# clientSecret configurados em bin/application.yml.
-#
-# Histórico: havia aqui um servidor stdlib que proxy-ava o endpoint
-# anônimo open.spotify.com/get_access_token. O Spotify passou a bloquear
-# esse endpoint em 2025 (HTTP 403 URL Blocked), então o método anônimo
-# foi descontinuado neste bot.
-
-
-# ------------------------------------------------------------
 # Lavalink local
 # ------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,8 +46,6 @@ def start_lavalink() -> subprocess.Popen | None:
         return None
 
     print("Iniciando servidor Lavalink local...")
-    # stdout/stderr herdados do terminal para que a URL de OAuth do YouTube
-    # apareça quando o Lavalink precisar de autorização.
     return subprocess.Popen(
         [JAVA_EXE, "-jar", "Lavalink.jar"],
         cwd=BIN_DIR,
@@ -86,6 +71,7 @@ COGS = [
     "cogs.music",
     "cogs.cafe",
     "cogs.playlists",
+    "cogs.pokemon",
 ]
 
 

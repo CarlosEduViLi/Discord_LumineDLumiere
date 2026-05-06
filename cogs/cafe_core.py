@@ -92,6 +92,7 @@ CLIENTES: list[dict] = [
         "nome": "Mia",
         "emoji": "🐱",
         "personalidade": "tímida",
+        "image_tags": {"pedido": "blush", "feliz": "smile", "triste": "cry"},
         "pedido_intro": [
             "psst... com licença... você tem {bebida}? perguntou baixinho, corando.",
             "é... um {bebida} por favor... s-se não for pedir muito...",
@@ -109,6 +110,7 @@ CLIENTES: list[dict] = [
         "nome": "Rex",
         "emoji": "🐶",
         "personalidade": "animado",
+        "image_tags": {"pedido": "wave", "feliz": "happy", "triste": "pout"},
         "pedido_intro": [
             "OLÁ!! Quero um {bebida} agora pleaseee!! 🐾",
             "BOA TARDE!! Me dá um {bebida}? tô com MUITA fome!!",
@@ -126,6 +128,7 @@ CLIENTES: list[dict] = [
         "nome": "Lúcia",
         "emoji": "🦊",
         "personalidade": "elegante",
+        "image_tags": {"pedido": "nod", "feliz": "smug", "triste": "shrug"},
         "pedido_intro": [
             "Boa tarde. Gostaria de um {bebida}, por favor.",
             "Posso pedir um {bebida}? Sem pressa.",
@@ -143,6 +146,7 @@ CLIENTES: list[dict] = [
         "nome": "Pip",
         "emoji": "🐹",
         "personalidade": "curioso",
+        "image_tags": {"pedido": "think", "feliz": "wink", "triste": "pout"},
         "pedido_intro": [
             "Oi!! O que é {bebida}? Tem gosto de quê? Posso provar?? 🌟",
             "Hm hm hm... {bebida} parece interessante... me conta mais!",
@@ -160,6 +164,7 @@ CLIENTES: list[dict] = [
         "nome": "Stella",
         "emoji": "🐰",
         "personalidade": "sonhadora",
+        "image_tags": {"pedido": "stare", "feliz": "smile", "triste": "cry"},
         "pedido_intro": [
             "...achei que {bebida} combina com dias nublados... posso pedir um? 🌧️",
             "você sabe... {bebida} me lembra algo... posso tomar um?",
@@ -177,6 +182,7 @@ CLIENTES: list[dict] = [
         "nome": "Bruno",
         "emoji": "🐻",
         "personalidade": "faminto",
+        "image_tags": {"pedido": "bored", "feliz": "happy", "triste": "shake"},
         "pedido_intro": [
             "Oi!! Tô com uma fome danada... tem {bebida}? E tem petisco? 🍪",
             "Hm... {bebida} dá pra acompanhar com biscoito? Perguntei só perguntando.",
