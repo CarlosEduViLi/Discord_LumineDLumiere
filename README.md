@@ -2,7 +2,7 @@
 
 <img src="https://media.giphy.com/media/l0Iy33dWjmywkCnNS/giphy.gif" width="280" alt="Lumine D'Lumière acenando~"/>
 
-# ✨ Lumine 💙
+# ✨ Lumine D'Lumière💙
 ### *Sua bot musical fofa e amorosa do Discord~*
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
