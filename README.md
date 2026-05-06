@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://media.tenor.com/OZGE1ljEXVMAAAAd/lumine-genshin-impact.gif" width="280" alt="Lumine waving"/>
+<img src="https://media.giphy.com/media/l0Iy33dWjmywkCnNS/giphy.gif" width="280" alt="Lumine D'Lumière acenando~"/>
 
 # ✨ Lumine 💙
 ### *Sua bot musical fofa e amorosa do Discord~*
@@ -185,7 +185,7 @@ Discord_LumineDLumiere/
 
 <div align="center">
 
-<img src="https://media.tenor.com/4FnOBo7tsOEAAAAd/lumine-thinking.gif" width="200" alt="Lumine pensando"/>
+<img src="https://media.giphy.com/media/rYKorlR2RtWnTlHfhI/giphy.gif" width="200" alt="Lumine D'Lumière fofa~"/>
 
 *Feito com muito amor e carinho~ 💙✨*
 
