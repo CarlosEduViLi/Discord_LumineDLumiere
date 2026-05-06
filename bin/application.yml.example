@@ -31,7 +31,7 @@ lavalink:
       snapshot: false
 
   server:
-    password: "youshallnotpass"
+    password: "${LAVALINK_PASSWORD}"
     sources:
       # OBRIGATÓRIO: desligar o source nativo — o plugin assume o controle
       youtube: false
@@ -59,10 +59,9 @@ plugins:
 
     oauth:
       enabled: true
-      # Refresh token obtido na autorização inicial do YouTube.
-      # Na primeira vez que rodar sem o token, o Lavalink vai logar uma URL
-      # para você autorizar — copie o refreshToken gerado e cole aqui.
-      refreshToken: "<SEU_REFRESH_TOKEN_DO_YOUTUBE_AQUI>"
+      # Refresh token gerado na primeira execução do Lavalink.
+      # Defina a variável YOUTUBE_REFRESH_TOKEN no seu .env com o valor gerado.
+      refreshToken: "${YOUTUBE_REFRESH_TOKEN}"
 
   lavasrc:
     providers:
@@ -78,8 +77,9 @@ plugins:
       flowerytts: false
       youtube: false
     spotify:
-      clientId: "<SEU_SPOTIFY_CLIENT_ID>"
-      clientSecret: "<SEU_SPOTIFY_CLIENT_SECRET>"
+      # Defina SPOTIFY_CLIENT_ID e SPOTIFY_CLIENT_SECRET no seu .env
+      clientId: "${SPOTIFY_CLIENT_ID}"
+      clientSecret: "${SPOTIFY_CLIENT_SECRET}"
       countryCode: "BR"
       playlistLoadLimit: 6
       albumLoadLimit: 6
