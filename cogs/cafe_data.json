@@ -1,0 +1,40 @@
+{
+  "829214121979019285": {
+    "401388975018737665": {
+      "lumicoins": 556,
+      "xp": 170,
+      "ingredientes": {
+        "acucar": 2
+      },
+      "estoque": {},
+      "cd_trabalhar": 1777988123.2124798,
+      "cd_atender": 1777901671.7310352
+    },
+    "358369519615475714": {
+      "lumicoins": 116,
+      "xp": 64,
+      "ingredientes": {},
+      "estoque": {},
+      "cd_trabalhar": 1777640680.6533265,
+      "cd_atender": 1777640584.7321267
+    },
+    "325282866756059137": {
+      "lumicoins": 100,
+      "xp": 10,
+      "ingredientes": {},
+      "estoque": {},
+      "cd_trabalhar": 1777922929.6306138,
+      "cd_atender": 0
+    }
+  },
+  "1490870965154873466": {
+    "401388975018737665": {
+      "lumicoins": 54,
+      "xp": 0,
+      "ingredientes": {},
+      "estoque": {},
+      "cd_trabalhar": 1777653150.236178,
+      "cd_atender": 0
+    }
+  }
+}

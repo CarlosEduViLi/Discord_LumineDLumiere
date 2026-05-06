@@ -1,0 +1,13 @@
+.env
+venv/
+__pycache__/
+*.py[cod]
+*.log
+*.tar.xz
+
+# Lavalink — binários pesados (baixe manualmente, veja o README)
+bin/jre/
+bin/Lavalink.jar
+bin/plugins/
+# application.yml contém tokens OAuth do YouTube e chaves do Spotify — NUNCA suba!
+bin/application.yml

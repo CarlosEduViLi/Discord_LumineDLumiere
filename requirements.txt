@@ -1,0 +1,7 @@
+# Bot Discord — LumineDLumiere
+# Dependências principais
+discord.py[voice]
+python-dotenv
+
+# Wrapper para o Lavalink
+wavelink

@@ -1,0 +1,88 @@
+# ============================================================
+# Lavalink — application.yml
+# Configuração baseada na documentação oficial:
+# https://github.com/lavalink-devs/youtube-source
+#
+# COMO USAR:
+#   1. Copie este arquivo: copy application.yml.example application.yml
+#   2. Preencha os campos marcados com <SEU_VALOR_AQUI>
+#   3. O arquivo application.yml real nunca deve ser commitado no Git!
+# ============================================================
+
+server:
+  port: 2333
+  address: 127.0.0.1
+
+spring:
+  main:
+    banner-mode: log
+  cloud:
+    config:
+      enabled: false
+
+lavalink:
+  plugins:
+    # Plugin oficial do YouTube (substitui o source nativo quebrado)
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.0"
+      repository: "https://maven.lavalink.dev/releases"
+    # Plugin LavaSrc — suporte a Spotify, Apple Music, Deezer, etc.
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.1"
+      repository: "https://maven.lavalink.dev/releases"
+      snapshot: false
+
+  server:
+    password: "youshallnotpass"
+    sources:
+      # OBRIGATÓRIO: desligar o source nativo — o plugin assume o controle
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true          # permite "ytsearch:" e "ytmsearch:"
+    allowDirectVideoIds: true  # permite passar apenas o ID do vídeo
+    allowDirectPlaylistIds: true
+
+    # Clientes recomendados pela documentação oficial (1.18.0):
+    #   MUSIC     → ytmsearch: — usa OAuth, não precisa de cipher
+    #   ANDROID_VR → não precisa de OAuth nem de cipher (substituto do ANDROID)
+    # Os clientes são consultados em ordem — MUSIC é preferencial.
+    clients:
+      - MUSIC
+      - ANDROID_VR
+
+    oauth:
+      enabled: true
+      # Refresh token obtido na autorização inicial do YouTube.
+      # Na primeira vez que rodar sem o token, o Lavalink vai logar uma URL
+      # para você autorizar — copie o refreshToken gerado e cole aqui.
+      refreshToken: "<SEU_REFRESH_TOKEN_DO_YOUTUBE_AQUI>"
+
+  lavasrc:
+    providers:
+      - "ytsearch:\"%ISRC%\""   # busca exata por código ISRC — mais preciso
+      - "ytsearch:%QUERY%"       # fallback: nome + artista
+    sources:
+      # Spotify desativado por enquanto (exige conta Premium no Developer App)
+      # Para reativar: mude para true e preencha clientId/clientSecret abaixo
+      spotify: false
+      applemusic: false
+      deezer: false
+      yandexmusic: false
+      flowerytts: false
+      youtube: false
+    spotify:
+      clientId: "<SEU_SPOTIFY_CLIENT_ID>"
+      clientSecret: "<SEU_SPOTIFY_CLIENT_SECRET>"
+      countryCode: "BR"
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
+      resolveArtistsInSearch: true
+      localFiles: false
+      preferAnonymousToken: false
