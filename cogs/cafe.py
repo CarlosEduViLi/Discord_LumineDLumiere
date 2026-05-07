@@ -9,7 +9,7 @@ from cogs.cafe_core import (
     get_user, save_user, get_all_users, get_nivel,
     cooldown_restante, formatar_tempo, NIVEIS,
     UPGRADES_CAFETEIRA, get_cafeteira_info, get_cafeteira_nivel,
-    aplicar_bonus_percentual,
+    aplicar_bonus_percentual, escolher_pista_receita,
 )
 from cogs.cafe_images import fetch_anime_image
 
@@ -105,6 +105,9 @@ class Cafe(commands.Cog):
                         f"Ganhou **{ganho} Lumicoins** 🪙 — Saldo: **{u['lumicoins']} 🪙**",
             color=COR_OK)
         emb.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        pista = escolher_pista_receita(u, "lumine", 20)
+        if pista:
+            emb.add_field(name="🤫 Inspiração da Lumine", value=pista, inline=False)
         emb.set_footer(text=f"{nivel['emoji']} {nivel['titulo']} • próximo turno em 30min")
         await ctx.send(embed=emb)
 
@@ -762,6 +765,9 @@ class Cafe(commands.Cog):
                         f"Saldo: **{u['lumicoins']} 🪙** | XP: **{u['xp']} ⭐**"
                         f"{bonus_str}",
             color=COR_OK)
+        pista = escolher_pista_receita(u, "cliente", 25, cliente=cliente)
+        if pista:
+            emb.add_field(name="🤫 Pista de cliente", value=pista, inline=False)
         emb.set_footer(text=f"{nivel['emoji']} {nivel['titulo']} • Lumine Café ☕")
         # Imagem grande como recompensa visual do atendimento bem-sucedido
         tag = cliente.get("image_tags", {}).get("feliz", "happy")

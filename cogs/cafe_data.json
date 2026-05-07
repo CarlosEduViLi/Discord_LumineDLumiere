@@ -1,34 +1,36 @@
 {
   "829214121979019285": {
     "401388975018737665": {
-      "lumicoins": 394,
-      "xp": 606,
+      "lumicoins": 611,
+      "xp": 719,
       "ingredientes": {
         "acucar": 2,
-        "pimenta": 1
+        "pimenta": 1,
+        "leite": 1
       },
-      "estoque": {
-        "caramel_macchiato": 1,
-        "cafe_arabias": 4,
-        "mocha_inverno": 1
-      },
-      "cd_trabalhar": 1778162709.937011,
-      "cd_atender": 1778162614.6952684,
+      "estoque": {},
+      "cd_trabalhar": 1778180211.3569343,
+      "cd_atender": 1778180226.8597584,
       "receitas_desbloqueadas": [
         "cafe_arabias",
-        "mocha_inverno"
+        "mocha_inverno",
+        "cold_brew_limao"
       ],
       "upgrades": {
-        "cafeteira": 1
+        "cafeteira": 2
       }
     },
     "358369519615475714": {
-      "lumicoins": 116,
-      "xp": 64,
+      "lumicoins": 113,
+      "xp": 97,
       "ingredientes": {},
       "estoque": {},
-      "cd_trabalhar": 1777640680.6533265,
-      "cd_atender": 1777640584.7321267
+      "cd_trabalhar": 1778178279.9510076,
+      "cd_atender": 1778178290.1507351,
+      "receitas_desbloqueadas": [],
+      "upgrades": {
+        "cafeteira": 0
+      }
     },
     "325282866756059137": {
       "lumicoins": 100,
@@ -37,6 +39,18 @@
       "estoque": {},
       "cd_trabalhar": 1777922929.6306138,
       "cd_atender": 0
+    },
+    "273501885145546753": {
+      "lumicoins": 90,
+      "xp": 30,
+      "ingredientes": {},
+      "estoque": {},
+      "cd_trabalhar": 1778169296.1591918,
+      "cd_atender": 1778169614.8041625,
+      "receitas_desbloqueadas": [],
+      "upgrades": {
+        "cafeteira": 0
+      }
     }
   },
   "1490870965154873466": {

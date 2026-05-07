@@ -3,6 +3,7 @@ cafe_core.py — Dados, constantes e persistência do ☕ Café da Lumine.
 """
 import json
 import os
+import random
 import time
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "cafe_data.json")
@@ -216,6 +217,148 @@ RECEITAS_SECRETAS: dict[str, dict] = {
         "xp": 75,
     },
 }
+
+# ─────────────────────────────────────────────
+#  PISTAS DE RECEITAS SECRETAS
+# ─────────────────────────────────────────────
+PISTAS_RECEITAS_SECRETAS: dict[str, dict[str, str]] = {
+    "cafe_arabias": {
+        "tema": "Tem bebida que parece cruzar um mercado antigo, quente e perfumado.",
+        "categoria": "Ela nasce de um grão forte e de especiarias que aquecem a xícara.",
+        "ingrediente": "Uma pitada ardida pode transformar um café comum em algo lendário.",
+    },
+    "mocha_inverno": {
+        "tema": "Algumas bebidas parecem feitas para dias frios e mãos geladas.",
+        "categoria": "Procure algo cremoso, doce e com perfume macio de confeitaria.",
+        "ingrediente": "Baunilha costuma deixar o inverno bem mais gentil.",
+    },
+    "cold_brew_limao": {
+        "tema": "Essa pista tem gosto de tarde clara, copo suado e frescor cítrico.",
+        "categoria": "Pense em café frio, água, gelo e um toque de fruta azedinha.",
+        "ingrediente": "Limão combina melhor com café gelado do que muita gente imagina.",
+    },
+    "cafe_sal_marinho": {
+        "tema": "Às vezes o doce fica mais bonito quando encontra uma brisa do mar.",
+        "categoria": "Essa bebida mistura grão, doçura dourada e um detalhe salgado.",
+        "ingrediente": "Sal marinho pode fazer o caramelo brilhar.",
+    },
+    "frape_morango": {
+        "tema": "Tem segredo que parece sobremesa rosa batida com risada de verão.",
+        "categoria": "Procure algo gelado, cremoso, frutado e com final de vitrine.",
+        "ingrediente": "Morango gosta de aparecer quando a bebida vira quase sobremesa.",
+    },
+    "latte_sakura": {
+        "tema": "Essa xícara parece uma flor caindo devagar sobre leite quente.",
+        "categoria": "Ela combina grão, laticínio, flor e uma doçura delicada.",
+        "ingrediente": "Flor de cerejeira pede companhia suave, não exagero.",
+    },
+    "choconta": {
+        "tema": "Uma bebida pode ser doce e fresca ao mesmo tempo, como sobremesa depois da chuva.",
+        "categoria": "Pense em chocolate, cremosidade e uma erva refrescante.",
+        "ingrediente": "Menta deixa o chocolate com cara de descoberta.",
+    },
+    "gingerbread_latte": {
+        "tema": "Essa receita cheira a biscoito saindo do forno.",
+        "categoria": "Ela pede café, leite e especiarias de cozinha aconchegante.",
+        "ingrediente": "Gengibre dá aquele calorzinho que fica no fundo da garganta.",
+    },
+    "cocoa_espresso": {
+        "tema": "Alguns cafés parecem sobremesa tropical com energia de espresso.",
+        "categoria": "A pista aponta para grão, leite, chocolate e um toque de fruta cremosa.",
+        "ingrediente": "Coco pode deixar o chocolate mais redondo.",
+    },
+    "lagrimas_anjo": {
+        "tema": "Essa bebida é clara, fria e delicada, como uma gota brilhando no copo.",
+        "categoria": "Não começa com café: procure água, gelo, flor e cítrico.",
+        "ingrediente": "Flor de cerejeira também sabe ser refrescante.",
+    },
+    "honey_citrus_tea": {
+        "tema": "Tem segredo que parece remédio carinhoso para dia cansado.",
+        "categoria": "Pense em água, doçura natural, cítrico e uma raiz quente.",
+        "ingrediente": "Mel e gengibre costumam conversar muito bem.",
+    },
+    "bomba_gelo": {
+        "tema": "Essa é para quem quer acordar até os pensamentos.",
+        "categoria": "É café frio com mais gelo do que juízo e uma erva refrescante.",
+        "ingrediente": "Menta pode deixar o gelo ainda mais intenso.",
+    },
+    "cafe_cubano": {
+        "tema": "Pequeno, forte e doce, como um empurrãozinho de energia.",
+        "categoria": "Não complique demais: grão e uma doçura generosa já contam uma história.",
+        "ingrediente": "Às vezes a resposta é adoçar mais do que parece sensato.",
+    },
+    "pink_matcha": {
+        "tema": "Essa bebida parece ter vestido uma fita rosa.",
+        "categoria": "Verde, cremoso e frutado: a pista mora nesse contraste.",
+        "ingrediente": "Matcha também pode ficar delicado com fruta vermelha.",
+    },
+    "beijo_caramelo_salgado": {
+        "tema": "Esse segredo parece doce de balcão com um final salgado.",
+        "categoria": "Misture café, doçura cremosa, caramelo e um toque de mar.",
+        "ingrediente": "Leite condensado deixa essa pista bem mais grudenta.",
+    },
+}
+
+PISTAS_FALAS: dict[str, object] = {
+    "lumine": [
+        "Enquanto arrumava a bancada, a Lumine comentou: \"{pista}\"",
+        "Lumine rabiscou algo no caderninho de receitas e sorriu: \"{pista}\"",
+        "Entre uma mesa e outra, Lumine deixou escapar uma inspiração: \"{pista}\"",
+    ],
+    "cliente": {
+        "tímida": [
+            "{nome} falou baixinho, quase escondendo o rosto: \"{pista}\"",
+            "{nome} mexeu na xícara e murmurou: \"{pista}\"",
+        ],
+        "animado": [
+            "{nome} abriu um sorriso enorme: \"{pista}\"",
+            "{nome} quase pulou da cadeira com a ideia: \"{pista}\"",
+        ],
+        "elegante": [
+            "{nome} observou com calma: \"{pista}\"",
+            "{nome} ajeitou a postura e comentou: \"{pista}\"",
+        ],
+        "curioso": [
+            "{nome} inclinou a cabeça, cheio de perguntas: \"{pista}\"",
+            "{nome} anotou mentalmente e perguntou: \"{pista}\"",
+        ],
+        "sonhadora": [
+            "{nome} olhou pela janela como se lembrasse de um sonho: \"{pista}\"",
+            "{nome} sorriu de um jeito distante: \"{pista}\"",
+        ],
+        "faminto": [
+            "{nome} pensou em voz alta entre uma mordida imaginária e outra: \"{pista}\"",
+            "{nome} bateu na barriga e comentou: \"{pista}\"",
+        ],
+    },
+}
+
+
+def escolher_pista_receita(user_data: dict, fonte: str, chance: int, cliente: dict | None = None) -> str | None:
+    """Retorna uma pista natural de receita secreta, ou None se nada for sorteado."""
+    if chance <= 0 or random.randint(1, 100) > chance:
+        return None
+
+    descobertas = set(user_data.get("receitas_desbloqueadas", []))
+    candidatas = [k for k in RECEITAS_SECRETAS if k not in descobertas and k in PISTAS_RECEITAS_SECRETAS]
+    if not candidatas:
+        return None
+
+    receita_key = random.choice(candidatas)
+    camada = random.choice(("tema", "categoria", "ingrediente"))
+    pista = PISTAS_RECEITAS_SECRETAS[receita_key][camada]
+
+    if fonte == "lumine":
+        templates = PISTAS_FALAS["lumine"]
+        return random.choice(templates).format(pista=pista)
+
+    if fonte == "cliente" and cliente:
+        personalidade = cliente.get("personalidade", "curioso")
+        templates_por_persona = PISTAS_FALAS["cliente"]
+        templates = templates_por_persona.get(personalidade) or templates_por_persona["curioso"]
+        return random.choice(templates).format(nome=cliente["nome"], pista=pista)
+
+    return pista
 
 # ─────────────────────────────────────────────
 #  CLIENTES (diversidade de personalidades)
