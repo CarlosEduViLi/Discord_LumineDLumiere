@@ -408,8 +408,11 @@ class Music(commands.Cog):
                 uid = int(mention_match.group(1))
                 target_user = ctx.guild.get_member(uid)
                 if not target_user:
-                    await ctx.send("😕 Não encontrei esse usuário no servidor~")
-                    return
+                    try:
+                        target_user = await ctx.guild.fetch_member(uid)
+                    except discord.NotFound:
+                        await ctx.send("😕 Não encontrei esse usuário no servidor~")
+                        return
 
         tracks_data = pl_cog.get_playlist_tracks(target_user.id, pl_name)
         if tracks_data is None:
