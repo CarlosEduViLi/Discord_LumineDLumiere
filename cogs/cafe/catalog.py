@@ -1,0 +1,271 @@
+from __future__ import annotations
+
+
+LOJA_CATEGORIAS = (
+    ("básicos", "☕ Básicos e Grãos"),
+    ("laticínios", "🥛 Laticínios"),
+    ("xaropes", "🍯 Adoçantes e Xaropes"),
+    ("especiarias", "🌿 Especiarias e Ervas"),
+    ("frutas", "🍓 Frutas e Extras"),
+)
+
+INGREDIENTES: dict[str, dict] = {
+    "grao": {"nome": "Grão de Café", "emoji": "🫘", "preco": 10, "categoria": "básicos"},
+    "gelo": {"nome": "Gelo", "emoji": "🧊", "preco": 3, "categoria": "básicos"},
+    "agua": {"nome": "Água", "emoji": "💧", "preco": 2, "categoria": "básicos"},
+    "leite": {"nome": "Leite", "emoji": "🥛", "preco": 8, "categoria": "laticínios"},
+    "chantilly": {"nome": "Chantilly", "emoji": "🍦", "preco": 12, "categoria": "laticínios"},
+    "leite_cond": {"nome": "Leite Condensado", "emoji": "🍮", "preco": 15, "categoria": "laticínios"},
+    "acucar": {"nome": "Açúcar", "emoji": "🍬", "preco": 5, "categoria": "xaropes"},
+    "caramelo": {"nome": "Caramelo", "emoji": "🍯", "preco": 15, "categoria": "xaropes"},
+    "chocolate": {"nome": "Chocolate", "emoji": "🍫", "preco": 14, "categoria": "xaropes"},
+    "mel": {"nome": "Mel", "emoji": "🐝", "preco": 18, "categoria": "xaropes"},
+    "baunilha": {"nome": "Baunilha", "emoji": "🌼", "preco": 16, "categoria": "xaropes"},
+    "matcha": {"nome": "Matcha", "emoji": "🍵", "preco": 20, "categoria": "especiarias"},
+    "canela": {"nome": "Canela", "emoji": "🪵", "preco": 12, "categoria": "especiarias"},
+    "menta": {"nome": "Menta", "emoji": "🌿", "preco": 14, "categoria": "especiarias"},
+    "pimenta": {"nome": "Pimenta", "emoji": "🌶️", "preco": 25, "categoria": "especiarias"},
+    "sal": {"nome": "Sal Marinho", "emoji": "🧂", "preco": 10, "categoria": "especiarias"},
+    "gengibre": {"nome": "Gengibre", "emoji": "🫚", "preco": 15, "categoria": "especiarias"},
+    "limao": {"nome": "Limão", "emoji": "🍋", "preco": 10, "categoria": "frutas"},
+    "morango": {"nome": "Morango", "emoji": "🍓", "preco": 22, "categoria": "frutas"},
+    "coco": {"nome": "Coco", "emoji": "🥥", "preco": 18, "categoria": "frutas"},
+    "sakura": {"nome": "Flor de Cerejeira", "emoji": "🌸", "preco": 30, "categoria": "frutas"},
+}
+
+BEBIDAS: dict[str, dict] = {
+    "cafe_simples": {
+        "nome": "Café Simples",
+        "emoji": "☕",
+        "receita": {"grao": 1},
+        "preco_venda": 20,
+        "xp": 5,
+    },
+    "cappuccino": {
+        "nome": "Cappuccino",
+        "emoji": "🧋",
+        "receita": {"grao": 1, "leite": 1},
+        "preco_venda": 35,
+        "xp": 10,
+    },
+    "latte": {
+        "nome": "Latte",
+        "emoji": "🥤",
+        "receita": {"grao": 1, "leite": 2},
+        "preco_venda": 40,
+        "xp": 12,
+    },
+    "cafe_gelado": {
+        "nome": "Café Gelado",
+        "emoji": "🧊",
+        "receita": {"grao": 1, "gelo": 2},
+        "preco_venda": 45,
+        "xp": 14,
+    },
+    "frappuccino": {
+        "nome": "Frappuccino",
+        "emoji": "🥛",
+        "receita": {"grao": 1, "leite": 1, "gelo": 2, "chantilly": 1},
+        "preco_venda": 70,
+        "xp": 20,
+    },
+    "caramel_macchiato": {
+        "nome": "Caramel Macchiato",
+        "emoji": "🍯",
+        "receita": {"grao": 1, "leite": 1, "caramelo": 1},
+        "preco_venda": 65,
+        "xp": 18,
+    },
+    "matcha_latte": {
+        "nome": "Matcha Latte",
+        "emoji": "🍵",
+        "receita": {"matcha": 1, "leite": 2},
+        "preco_venda": 60,
+        "xp": 17,
+    },
+    "mocha": {
+        "nome": "Mocha",
+        "emoji": "🍫",
+        "receita": {"grao": 1, "leite": 1, "chocolate": 1},
+        "preco_venda": 60,
+        "xp": 17,
+    },
+}
+
+RECEITAS_SECRETAS: dict[str, dict] = {
+    "cafe_arabias": {
+        "nome": "Café das Arábias",
+        "emoji": "🧞‍♂️",
+        "receita": {"grao": 1, "canela": 1, "pimenta": 1},
+        "preco_venda": 120,
+        "xp": 50,
+    },
+    "mocha_inverno": {
+        "nome": "Mocha Branco de Inverno",
+        "emoji": "❄️",
+        "receita": {"grao": 1, "leite": 1, "baunilha": 1, "chantilly": 1},
+        "preco_venda": 150,
+        "xp": 60,
+    },
+    "cold_brew_limao": {
+        "nome": "Cold Brew de Limão",
+        "emoji": "🍋",
+        "receita": {"grao": 1, "agua": 1, "gelo": 1, "limao": 1},
+        "preco_venda": 110,
+        "xp": 45,
+    },
+    "cafe_sal_marinho": {
+        "nome": "Café com Sal Marinho",
+        "emoji": "🌊",
+        "receita": {"grao": 1, "caramelo": 1, "sal": 1},
+        "preco_venda": 130,
+        "xp": 55,
+    },
+    "frape_morango": {
+        "nome": "Frapê de Morango Selvagem",
+        "emoji": "🍓",
+        "receita": {"leite": 1, "gelo": 1, "morango": 1, "chantilly": 1},
+        "preco_venda": 160,
+        "xp": 65,
+    },
+    "latte_sakura": {
+        "nome": "Latte de Flor de Cerejeira",
+        "emoji": "🌸",
+        "receita": {"grao": 1, "leite": 1, "sakura": 1, "mel": 1},
+        "preco_venda": 200,
+        "xp": 80,
+    },
+    "choconta": {
+        "nome": "Choconta",
+        "emoji": "🌿",
+        "receita": {"chocolate": 1, "leite": 1, "menta": 1},
+        "preco_venda": 140,
+        "xp": 55,
+    },
+    "gingerbread_latte": {
+        "nome": "Gingerbread Latte",
+        "emoji": "🍪",
+        "receita": {"grao": 1, "leite": 1, "gengibre": 1, "canela": 1},
+        "preco_venda": 150,
+        "xp": 60,
+    },
+    "cocoa_espresso": {
+        "nome": "Cocoa Espresso",
+        "emoji": "🥥",
+        "receita": {"grao": 1, "leite": 1, "coco": 1, "chocolate": 1},
+        "preco_venda": 160,
+        "xp": 65,
+    },
+    "lagrimas_anjo": {
+        "nome": "Lágrimas de Anjo",
+        "emoji": "👼",
+        "receita": {"agua": 1, "gelo": 1, "sakura": 1, "limao": 1},
+        "preco_venda": 250,
+        "xp": 100,
+    },
+    "honey_citrus_tea": {
+        "nome": "Honey Citrus Tea",
+        "emoji": "🍯",
+        "receita": {"agua": 1, "mel": 1, "limao": 1, "gengibre": 1},
+        "preco_venda": 140,
+        "xp": 55,
+    },
+    "bomba_gelo": {
+        "nome": "Bomba de Gelo",
+        "emoji": "🥶",
+        "receita": {"grao": 1, "gelo": 2, "menta": 1},
+        "preco_venda": 120,
+        "xp": 45,
+    },
+    "cafe_cubano": {
+        "nome": "Café Cubano",
+        "emoji": "🌴",
+        "receita": {"grao": 1, "acucar": 2},
+        "preco_venda": 90,
+        "xp": 35,
+    },
+    "pink_matcha": {
+        "nome": "Pink Matcha",
+        "emoji": "🎀",
+        "receita": {"matcha": 1, "leite": 1, "morango": 1},
+        "preco_venda": 170,
+        "xp": 70,
+    },
+    "beijo_caramelo_salgado": {
+        "nome": "Beijo de Caramelo Salgado",
+        "emoji": "💋",
+        "receita": {"grao": 1, "leite_cond": 1, "caramelo": 1, "sal": 1},
+        "preco_venda": 180,
+        "xp": 75,
+    },
+}
+
+NIVEIS: list[dict] = [
+    {"nivel": 1, "titulo": "Barista Novato", "emoji": "☕", "xp_min": 0},
+    {"nivel": 2, "titulo": "Barista Aprendiz", "emoji": "☕", "xp_min": 100},
+    {"nivel": 3, "titulo": "Barista Experiente", "emoji": "☕", "xp_min": 300},
+    {"nivel": 4, "titulo": "Barista Sênior", "emoji": "🌟", "xp_min": 700},
+    {"nivel": 5, "titulo": "Mestre Barista", "emoji": "🌟", "xp_min": 1500},
+    {"nivel": 6, "titulo": "Lenda do Café", "emoji": "👑", "xp_min": 3000},
+]
+
+UPGRADES_CAFETEIRA: list[dict] = [
+    {
+        "nivel": 0,
+        "nome": "Cafeteira Inicial",
+        "custo": 0,
+        "bonus_venda": 0,
+        "bonus_xp": 0,
+        "bonus_atendimento": 0,
+        "chance_economizar": 0,
+    },
+    {
+        "nivel": 1,
+        "nome": "Cafeteira Polida",
+        "custo": 300,
+        "bonus_venda": 5,
+        "bonus_xp": 5,
+        "bonus_atendimento": 0,
+        "chance_economizar": 0,
+    },
+    {
+        "nivel": 2,
+        "nome": "Caldeira Reforçada",
+        "custo": 750,
+        "bonus_venda": 10,
+        "bonus_xp": 10,
+        "bonus_atendimento": 0,
+        "chance_economizar": 0,
+    },
+    {
+        "nivel": 3,
+        "nome": "Moedor Embutido",
+        "custo": 1500,
+        "bonus_venda": 15,
+        "bonus_xp": 15,
+        "bonus_atendimento": 5,
+        "chance_economizar": 0,
+    },
+    {
+        "nivel": 4,
+        "nome": "Máquina Profissional",
+        "custo": 3000,
+        "bonus_venda": 20,
+        "bonus_xp": 20,
+        "bonus_atendimento": 10,
+        "chance_economizar": 0,
+    },
+    {
+        "nivel": 5,
+        "nome": "Luminepressa Deluxe",
+        "custo": 6000,
+        "bonus_venda": 30,
+        "bonus_xp": 25,
+        "bonus_atendimento": 15,
+        "chance_economizar": 5,
+    },
+]
+
+CD_TRABALHAR = 30 * 60
+CD_ATENDER = 60 * 60
+

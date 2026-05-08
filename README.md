@@ -164,9 +164,12 @@ A Lumine vai subir o Lavalink automaticamente e se conectar ao Discord~ 💙
 |---|---|
 | `l!trabalhar` | Ganhe Lumicoins (cooldown 30 min) 💼 |
 | `l!loja` | Ingredientes à venda 🏪 |
-| `l!comprar <item> [qtd]` | Compre ingredientes 🛍️ |
+| `l!comprar <item> [qtd] ...` | Compre vários ingredientes 🛍️ |
+| `l!cafeteira` | Veja upgrades da cafeteira ☕ |
+| `l!melhorar cafeteira` | Compre melhorias ✨ |
 | `l!cardapio` | Veja receitas e preços 📋 |
 | `l!preparar <bebida>` | Prepare uma bebida ☕ |
+| `l!inventar <ing1> <ing2> ...` | Descubra receitas secretas 🧪 |
 | `l!vender <bebida>` | Venda do estoque 💰 |
 | `l!atender [bebida]` | Atenda um cliente especial 👥 |
 | `l!cafe` | Seu perfil de barista ⭐ |
@@ -194,17 +197,25 @@ Discord_LumineDLumiere/
 │   ├── application.yml  # Configuração do servidor Lavalink
 │   ├── Lavalink.jar     # Baixe manualmente (não está no repo)
 │   └── jre/             # Java portátil (não está no repo)
+├── data/               # Dados locais (JSON ignorado + exemplos)
+├── utils/              # Infraestrutura compartilhada
+│   ├── paths.py        # Caminhos de dados do projeto
+│   └── storage.py      # Persistência JSON segura
 └── cogs/
     ├── music.py         # Comandos de música 🎵
     ├── playlists.py     # Sistema de playlists 📋
-    ├── playlists.json   # Dados salvos das playlists
-    ├── cafe.py          # Sistema de café ☕
-    ├── cafe_core.py     # Lógica e dados do café
-    ├── cafe_data.json   # Dados persistidos dos usuários
+    ├── cafe/            # Sistema de café ☕
+    │   ├── cog.py       # Comandos Discord
+    │   ├── service.py   # Regras do minigame
+    │   ├── catalog.py   # Ingredientes, bebidas, níveis e upgrades
+    │   ├── images.py    # Imagens de clientes do café
+    │   └── narrative.py # Falas, clientes e pistas
     ├── dice.py          # Dados 🎲
     ├── pokemon.py       # Curiosidades Pokémon via PokéAPI 🎮
     └── help.py          # Sistema de ajuda 💙
 ```
+
+Os dados locais ficam em `data/cafe_data.json` e `data/playlists.json`, que são ignorados pelo Git. Use os arquivos `data/*.example.json` como referência inicial.
 
 ---
 

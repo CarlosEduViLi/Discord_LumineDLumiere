@@ -5,6 +5,10 @@ __pycache__/
 *.log
 *.tar.xz
 
+# Dados locais gerados pelo bot
+data/*.json
+!data/*.example.json
+
 # Lavalink — binários pesados (baixe manualmente, veja o README)
 bin/jre/
 bin/Lavalink.jar

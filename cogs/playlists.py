@@ -1,14 +1,14 @@
 import asyncio
-import json
-import os
 import re
 
 import discord
 import wavelink
 from discord.ext import commands
 
+from utils.paths import PLAYLISTS_DATA_PATH
+from utils.storage import JsonStore
+
 _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
-_PLAYLIST_FILE = os.path.join(os.path.dirname(__file__), "playlists.json")
 _MAX_SONGS = 200
 _MAX_PLAYLISTS = 5
 _PER_PAGE = 10
@@ -86,21 +86,15 @@ class Playlists(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.store = JsonStore(PLAYLISTS_DATA_PATH)
 
     # ── JSON helpers ───────────────────────────────────────────────
 
-    def _load(self) -> dict:
-        if not os.path.exists(_PLAYLIST_FILE):
-            return {}
-        try:
-            with open(_PLAYLIST_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
-            return {}
+    async def _load(self) -> dict:
+        return await self.store.read()
 
-    def _save(self, data: dict) -> None:
-        with open(_PLAYLIST_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    async def _save(self, data: dict) -> None:
+        await self.store.replace(data)
 
     def _validate_name(self, name: str) -> str | None:
         name = name.strip().lower()
@@ -153,12 +147,12 @@ class Playlists(commands.Cog):
 
     # ── Public API (usada pelo music.py) ───────────────────────────
 
-    def get_playlist_tracks(self, user_id: int, pl_name: str) -> list | None:
+    async def get_playlist_tracks(self, user_id: int, pl_name: str) -> list | None:
         """Retorna a lista de faixas de um usuário+playlist, ou None se não encontrada."""
         pl_name = self._validate_name(pl_name)
         if not pl_name:
             return None
-        data = self._load()
+        data = await self._load()
         return data.get(str(user_id), {}).get(pl_name)
 
     # ── Comandos ───────────────────────────────────────────────────
@@ -199,7 +193,7 @@ class Playlists(commands.Cog):
             )
             return
 
-        data = self._load()
+        data = await self._load()
         uid = str(ctx.author.id)
         user_data = data.setdefault(uid, {})
 
@@ -224,7 +218,7 @@ class Playlists(commands.Cog):
             )
 
         user_data[pl_name] = tracks
-        self._save(data)
+        await self._save(data)
         await ctx.send(
             f"💾 Playlist **{pl_name}** salva com **{len(tracks)}** música(s)! 🎵💙\n"
             f"*Toque com `l!play @{pl_name}` quando quiser~* ✨"
@@ -236,7 +230,7 @@ class Playlists(commands.Cog):
     async def pl_list(self, ctx: commands.Context, member: discord.Member | None = None):
         """Lista suas playlists (ou de outro usuário). Ex: l!pl list @Usuario"""
         target = member or ctx.author
-        data = self._load()
+        data = await self._load()
         playlists = data.get(str(target.id), {})
 
         if not playlists:
@@ -280,7 +274,7 @@ class Playlists(commands.Cog):
             await ctx.send("😅 Nome de playlist inválido~")
             return
 
-        data = self._load()
+        data = await self._load()
         tracks = data.get(str(target.id), {}).get(name)
 
         if tracks is None:
@@ -309,7 +303,7 @@ class Playlists(commands.Cog):
             await ctx.send("😅 Nome de playlist inválido~")
             return
 
-        data = self._load()
+        data = await self._load()
         uid = str(ctx.author.id)
 
         if name not in data.get(uid, {}):
@@ -346,7 +340,7 @@ class Playlists(commands.Cog):
             track = results[0] if not isinstance(results, wavelink.Playlist) else results.tracks[0]
             entry = {"title": track.title, "uri": track.uri or url, "author": track.author or "?"}
             user_playlist.append(entry)
-            self._save(data)
+            await self._save(data)
             await ctx.send(
                 f"✅ **{track.title}** adicionada à playlist **{name}**! "
                 f"({len(user_playlist)}/{_MAX_SONGS}) 💙"
@@ -369,7 +363,7 @@ class Playlists(commands.Cog):
             t = queue_tracks[idx]
             entry = {"title": t.title, "uri": t.uri or "", "author": t.author or "?"}
             user_playlist.append(entry)
-            self._save(data)
+            await self._save(data)
             await ctx.send(
                 f"✅ **{t.title}** adicionada à playlist **{name}**! "
                 f"({len(user_playlist)}/{_MAX_SONGS}) 💙"
@@ -387,7 +381,7 @@ class Playlists(commands.Cog):
         t = player.current
         entry = {"title": t.title, "uri": t.uri or "", "author": t.author or "?"}
         user_playlist.append(entry)
-        self._save(data)
+        await self._save(data)
         await ctx.send(
             f"✅ **{t.title}** adicionada à playlist **{name}**! "
             f"({len(user_playlist)}/{_MAX_SONGS}) 💙"
@@ -403,7 +397,7 @@ class Playlists(commands.Cog):
             await ctx.send("😅 Nome de playlist inválido~")
             return
 
-        data = self._load()
+        data = await self._load()
         uid = str(ctx.author.id)
 
         if name not in data.get(uid, {}):
@@ -419,7 +413,7 @@ class Playlists(commands.Cog):
             return
 
         removed = tracks.pop(idx)
-        self._save(data)
+        await self._save(data)
         await ctx.send(f"🗑️ Removi **{removed['title']}** da playlist **{name}**~ 💙")
 
     # ── delete ─────────────────────────────────────────────────────
@@ -432,7 +426,7 @@ class Playlists(commands.Cog):
             await ctx.send("😅 Nome de playlist inválido~")
             return
 
-        data = self._load()
+        data = await self._load()
         uid = str(ctx.author.id)
 
         if pl_name not in data.get(uid, {}):
@@ -450,7 +444,7 @@ class Playlists(commands.Cog):
         del data[uid][pl_name]
         if not data[uid]:
             del data[uid]
-        self._save(data)
+        await self._save(data)
         await ctx.send(
             f"🗑️ Playlist **{pl_name}** apagada~ 💙\n*Até que foi divertido enquanto durou!*"
         )
@@ -468,7 +462,7 @@ class Playlists(commands.Cog):
             )
             return
 
-        data = self._load()
+        data = await self._load()
         uid = str(ctx.author.id)
 
         if old not in data.get(uid, {}):
@@ -479,7 +473,7 @@ class Playlists(commands.Cog):
             return
 
         data[uid][new] = data[uid].pop(old)
-        self._save(data)
+        await self._save(data)
         await ctx.send(f"✏️ Renomeei **{old}** → **{new}** com todo carinho! 💙✨")
 
     # ── loop ───────────────────────────────────────────────────────────
@@ -529,4 +523,3 @@ class Playlists(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Playlists(bot))
-    

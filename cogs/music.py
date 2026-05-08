@@ -414,7 +414,7 @@ class Music(commands.Cog):
                         await ctx.send("😕 Não encontrei esse usuário no servidor~")
                         return
 
-        tracks_data = pl_cog.get_playlist_tracks(target_user.id, pl_name)
+        tracks_data = await pl_cog.get_playlist_tracks(target_user.id, pl_name)
         if tracks_data is None:
             owner_str = "Você" if target_user == ctx.author else f"**{target_user.display_name}**"
             await ctx.send(

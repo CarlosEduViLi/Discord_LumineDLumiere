@@ -1,11 +1,11 @@
 """
-cafe_images.py — Helper de imagens de anime para o ☕ Café da Lumine.
+images.py — Helper de imagens de anime para o ☕ Café da Lumine.
 
 Busca imagens em APIs públicas (nekos.best → waifu.pics como fallback)
 e mantém um pool em memória com TTL para reduzir chamadas externas.
 
 Uso:
-    from cogs.cafe_images import fetch_anime_image
+    from cogs.cafe.images import fetch_anime_image
     url = await fetch_anime_image("blush")  # str | None
 """
 from __future__ import annotations
