@@ -1,25 +1,28 @@
 from __future__ import annotations
 
 import random
+import time as _time
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
-from .catalog import BEBIDAS, INGREDIENTES, LOJA_CATEGORIAS, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
+from .catalog import BEBIDAS, CD_CLIENTE, CD_ATENDER, CD_TRABALHAR, INGREDIENTES, LOJA_CATEGORIAS, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
+from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
 from .images import fetch_anime_image
-from .narrative import FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, escolher_pista_receita
+from .narrative import CLIENTES, CLIENTES_VIP, FRASES_BEBIDA_DO_DIA, FRASES_CATEGORIA_DESCONTO, FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, escolher_pista_receita
 from .repository import CafeRepository
 from .service import (
     comprar as regra_comprar,
+    cooldown_restante,
     formatar_tempo,
     get_cafeteira_info,
     get_cafeteira_nivel,
     get_nivel,
     iniciar_atendimento,
     inventar as regra_inventar,
+    is_client_expired,
     melhorar_cafeteira,
     preparar as regra_preparar,
-    servir_atendimento,
     trabalhar as regra_trabalhar,
     vender as regra_vender,
 )
@@ -47,6 +50,10 @@ def _faltando_str(faltando: list[dict]) -> str:
 
 def _ingredientes_str(itens: dict[str, int]) -> str:
     return "  ".join(f"{INGREDIENTES[key]['emoji']}×{qtd}" for key, qtd in itens.items())
+
+
+def _cooldown_status(restante: float) -> str:
+    return f"⏳ **{formatar_tempo(restante)}**" if restante else "✅ **pronto**"
 
 
 class LojaView(discord.ui.View):
@@ -99,6 +106,75 @@ class Cafe(commands.Cog):
         self.bot = bot
         self.repo = repo or CafeRepository()
 
+    async def cog_load(self) -> None:
+        self._verificar_timeouts.start()
+
+    async def cog_unload(self) -> None:
+        self._verificar_timeouts.cancel()
+
+    @tasks.loop(seconds=30)
+    async def _verificar_timeouts(self) -> None:
+        """Verifica a cada 30s se algum cliente expirou (5 min sem ser atendido)."""
+        agora = _time.time()
+        try:
+            pendentes = await self.repo.get_all_pending_clients()
+        except Exception:
+            return
+
+        for guild_id, user_id, pendente in pendentes:
+            ts = pendente.get("ts", agora)
+            if agora - ts < CD_CLIENTE:
+                continue
+            channel_id = pendente.get("channel_id")
+            try:
+                await self.repo.remover_cliente_pendente(guild_id, user_id)
+                await self._notificar_timeout(user_id, channel_id, pendente)
+            except Exception:
+                pass
+
+    @_verificar_timeouts.before_loop
+    async def _before_verificar(self) -> None:
+        await self.bot.wait_until_ready()
+
+    async def _notificar_timeout(self, user_id: int, channel_id: int | None, pendente: dict) -> None:
+        if not channel_id:
+            return
+        channel = self.bot.get_channel(int(channel_id))
+        if not channel:
+            return
+
+        cliente_nome = pendente.get("cliente", "")
+        vip = pendente.get("vip", False)
+        all_clients = CLIENTES + CLIENTES_VIP
+        cliente = next((c for c in all_clients if c["nome"] == cliente_nome), None)
+
+        if cliente:
+            emoji = cliente["emoji"]
+            fala = random.choice(cliente.get("timeout", ["...Parece que esqueceram de mim."]))
+            if vip:
+                embed = discord.Embed(
+                    title=f"💸 {emoji} {cliente_nome} foi embora sem ser atendido!",
+                    description=f'*"{fala}"*\n\nVocê perdeu um **cliente VIP**! 😰 O cooldown continua...',
+                    color=COR_ERRO,
+                )
+                embed.set_footer(text="Clientes VIP não esperam pra sempre... 💔")
+            else:
+                embed = discord.Embed(
+                    title=f"😔 {emoji} {cliente_nome} foi embora...",
+                    description=f'*"{fala}"*\n\nEsperou 5 minutos e desistiu. O cooldown continua.',
+                    color=COR_ERRO,
+                )
+        else:
+            embed = discord.Embed(
+                description="⏰ Um cliente esperou demais e foi embora sem ser atendido.",
+                color=COR_ERRO,
+            )
+
+        try:
+            await channel.send(content=f"<@{user_id}>", embed=embed)
+        except discord.HTTPException:
+            pass
+
     def _bonus_cafeteira_linhas(self, info: dict) -> list[str]:
         linhas = []
         if info["bonus_venda"]:
@@ -107,17 +183,24 @@ class Cafe(commands.Cog):
             linhas.append(f"⭐ +{info['bonus_xp']}% XP ao preparar")
         if info["bonus_atendimento"]:
             linhas.append(f"🪙 +{info['bonus_atendimento']}% gorjeta ao atender")
-        if info["chance_economizar"]:
-            linhas.append(f"🎒 {info['chance_economizar']}% de chance de poupar 1 ingrediente")
         return linhas or ["Sem bônus ativos ainda."]
 
     def _build_loja_embed(self, saldo: int, page: int, total_pages: int) -> discord.Embed:
         categoria_key, titulo = LOJA_CATEGORIAS[page - 1]
-        linhas = [
-            f"{ing['emoji']} **{ing['nome']}** — {ing['preco']} 🪙 | `l!comprar {key}`"
-            for key, ing in INGREDIENTES.items()
-            if ing.get("categoria") == categoria_key
-        ]
+        cat_desconto = get_categoria_desconto()
+        em_promo = categoria_key == cat_desconto
+        linhas = []
+        for key, ing in INGREDIENTES.items():
+            if ing.get("categoria") != categoria_key:
+                continue
+            preco_orig = ing["preco"]
+            if em_promo:
+                preco_desc = max(1, preco_orig * (100 - get_desconto_pct()) // 100)
+                linha = f"{ing['emoji']} **{ing['nome']}** — ~~{preco_orig}~~ **{preco_desc} 🪙** 🏷️ | `l!comprar {key}`"
+            else:
+                linha = f"{ing['emoji']} **{ing['nome']}** — {preco_orig} 🪙 | `l!comprar {key}`"
+            linhas.append(linha)
+        titulo_campo = f"{titulo} {'🏷️ PROMOÇÃO HOJE!' if em_promo else ''}"
         embed = discord.Embed(
             title="🏪 Loja de Ingredientes",
             description=(
@@ -126,7 +209,7 @@ class Cafe(commands.Cog):
             ),
             color=COR_LOJA,
         )
-        embed.add_field(name=titulo, value="\n".join(linhas) or "*Nada por aqui ainda.*", inline=False)
+        embed.add_field(name=titulo_campo, value="\n".join(linhas) or "*Nada por aqui ainda.*", inline=False)
         embed.set_footer(text=f"Página {page}/{total_pages} • Lumine Café ☕")
         return embed
 
@@ -164,6 +247,14 @@ class Cafe(commands.Cog):
         total = len(LOJA_CATEGORIAS)
         page = max(1, min(page, total))
         view = LojaView(self, ctx.author, page)
+
+        # Frase da Lumine sobre a promoção do dia
+        cat_key = get_categoria_desconto()
+        cat_nome = next((titulo for key, titulo in LOJA_CATEGORIAS if key == cat_key), cat_key)
+        frase = random.choice(FRASES_CATEGORIA_DESCONTO).format(
+            categoria=cat_nome, desconto=get_desconto_pct()
+        )
+        await ctx.send(f"*{frase}*")
         view.message = await ctx.send(embed=self._build_loja_embed(user["lumicoins"], page, total), view=view)
 
     @commands.command(name="cafeteira", aliases=["upgrades"], help="Veja e melhore sua cafeteira.")
@@ -258,13 +349,12 @@ class Cafe(commands.Cog):
             return await ctx.send("❌ Não consegui entender o pedido! Ex.: `l!comprar grao 2 leite 3`")
 
         user = result["user"]
-        linhas = []
-        for item in result["linhas"]:
-            ing = INGREDIENTES[item["key"]]
-            linhas.append(f"**{item['quantidade']}× {ing['emoji']} {ing['nome']}** — {item['subtotal']} 🪙")
         embed = discord.Embed(
             title="🛍️ Compra realizada!",
-            description="\n".join(linhas) + (
+            description="\n".join(
+                f"{'🏷️ ' if item.get('em_promocao') else ''}**{item['quantidade']}× {INGREDIENTES[item['key']]['emoji']} {INGREDIENTES[item['key']]['nome']}** — {item['subtotal']} 🪙"
+                for item in result["linhas"]
+            ) + (
                 f"\n\n💰 **Total:** {result['custo_total']} 🪙\n"
                 f"💳 Saldo restante: **{user['lumicoins']} 🪙**"
             ),
@@ -276,14 +366,19 @@ class Cafe(commands.Cog):
     @commands.guild_only()
     async def cardapio(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
+
+        bebida_dia_key = get_bebida_do_dia()
+        bebida_dia_data = BEBIDAS.get(bebida_dia_key)
+
         embed = discord.Embed(
             title="📋 Cardápio da Lumine Café",
             description="Use `l!preparar <bebida>` para fazer uma!\n​",
             color=COR_CAFE,
         )
         for key, bebida in BEBIDAS.items():
+            estrela = " ⭐" if key == bebida_dia_key else ""
             embed.add_field(
-                name=f"{bebida['emoji']} {bebida['nome']} — {bebida['preco_venda']} 🪙 | +{bebida['xp']} ⭐",
+                name=f"{bebida['emoji']} {bebida['nome']}{estrela} — {bebida['preco_venda']} 🪙 | +{bebida['xp']} ⭐",
                 value=f"`l!preparar {key}`  •  {_receita_str(bebida['receita'])}",
                 inline=False,
             )
@@ -305,12 +400,33 @@ class Cafe(commands.Cog):
                 inline=False,
             )
         embed.set_footer(text="Lumine Café ☕ • Feito com amor!")
+
+        # Frase da Lumine sobre a bebida do dia
+        if bebida_dia_data:
+            frase = random.choice(FRASES_BEBIDA_DO_DIA).format(
+                bebida=bebida_dia_data["nome"],
+                emoji=bebida_dia_data["emoji"],
+                bonus_xp=get_bonus_bebida_xp_pct(),
+                bonus_venda=get_bonus_bebida_venda_pct(),
+            )
+            await ctx.send(f"*{frase}*")
+
         await ctx.send(embed=embed)
 
-    @commands.command(name="preparar", aliases=["fazer", "brew"], help="Prepare uma bebida. Ex: l!preparar cappuccino")
+    @commands.command(name="preparar", aliases=["fazer", "brew"], help="Prepare uma bebida. Ex: l!preparar cappuccino 3")
     @commands.guild_only()
     async def preparar(self, ctx: commands.Context, *, bebida: str):
-        result = await self.repo.update_user(ctx.guild.id, ctx.author.id, lambda user: regra_preparar(user, bebida))
+        # Parseia quantidade opcional no final: "cappuccino 3" → bebida="cappuccino", qtd=3
+        tokens = bebida.strip().split()
+        quantidade = 1
+        if len(tokens) >= 2 and tokens[-1].isdigit():
+            quantidade = max(1, min(int(tokens[-1]), 20))
+            bebida = " ".join(tokens[:-1])
+
+        result = await self.repo.update_user(
+            ctx.guild.id, ctx.author.id,
+            lambda user: regra_preparar(user, bebida, quantidade),
+        )
         if not result["ok"]:
             if result["reason"] == "bebida_invalida":
                 opcoes = ", ".join(f"`{opcao}`" for opcao in result["opcoes"])
@@ -318,7 +434,8 @@ class Cafe(commands.Cog):
             bebida_data = BEBIDAS.get(result.get("bebida")) or RECEITAS_SECRETAS.get(result.get("bebida"))
             title = "😢 Faltam ingredientes!"
             if bebida_data:
-                title = f"😢 Faltam ingredientes para {bebida_data['emoji']} {bebida_data['nome']}!"
+                qtd_label = f" ×{quantidade}" if quantidade > 1 else ""
+                title = f"😢 Faltam ingredientes para {quantidade}× {bebida_data['emoji']} {bebida_data['nome']}!" if quantidade > 1 else f"😢 Faltam ingredientes para {bebida_data['emoji']} {bebida_data['nome']}!"
             return await ctx.send(embed=discord.Embed(
                 title=title,
                 description=_faltando_str(result["faltando"]) + "\n\nUse `l!comprar` para abastecer!",
@@ -327,24 +444,39 @@ class Cafe(commands.Cog):
 
         user = result["user"]
         bebida_data = result["bebida_data"]
-        bonus_str = ""
-        if result["xp_ganho"] > bebida_data["xp"]:
-            bonus_str += f"\n**Bônus da cafeteira:** +{result['xp_ganho'] - bebida_data['xp']} XP ✨"
-        if result["ingrediente_poupado"]:
-            ing = INGREDIENTES[result["ingrediente_poupado"]]
-            bonus_str += f"\n**Economia da cafeteira:** poupou 1× {ing['emoji']} {ing['nome']} 🎒"
+        qtd = result["quantidade"]
+        xp_ganho = result["xp_ganho"]
+        bonus_dia_xp = result["bonus_dia_xp"]
         nivel = get_nivel(user["xp"])
+
+        bonus_str = ""
+        xp_cafeteira = xp_ganho - bebida_data["xp"] * qtd - bonus_dia_xp
+        if xp_cafeteira > 0:
+            bonus_str += f"\n**Bônus da cafeteira:** +{xp_cafeteira} XP ✨"
+        if bonus_dia_xp:
+            bonus_str += f"\n**⭐ Bebida do dia:** +{bonus_dia_xp} XP bônus! 🌟"
+
+        if qtd == 1:
+            titulo = f"☕ {bebida_data['emoji']} {bebida_data['nome']} preparado!"
+            intro = "*Que cheirinho gostoso...* ✨\n\n"
+            rodape = f"Bebida no estoque! Use `l!vender {result['bebida']}` para vender. 🏪"
+        else:
+            titulo = f"☕ {bebida_data['emoji']} {bebida_data['nome']} ×{qtd} preparados!"
+            intro = f"*Que produção! {qtd} xícaras quentinhas a postos...* ✨\n\n"
+            rodape = f"{qtd} bebidas no estoque! Use `l!vender {result['bebida']}` para vender. 🏪"
+
         await ctx.send(embed=discord.Embed(
-            title=f"☕ {bebida_data['emoji']} {bebida_data['nome']} preparado!",
+            title=titulo,
             description=(
-                "*Que cheirinho gostoso...* ✨\n\n"
+                f"{intro}"
                 f"**Receita:** {_receita_str(bebida_data['receita'])}\n"
-                f"**XP ganho:** +{result['xp_ganho']} ⭐  |  XP total: {user['xp']} ⭐"
+                f"**XP ganho:** +{xp_ganho} ⭐  |  XP total: {user['xp']} ⭐"
                 f"{bonus_str}\n\n"
-                f"Bebida no estoque! Use `l!vender {result['bebida']}` para vender. 🏪"
+                f"{rodape}"
             ),
             color=COR_OK,
         ).set_footer(text=f"{nivel['emoji']} {nivel['titulo']}"))
+
 
     @commands.command(name="inventar", aliases=["experimentar", "misturar"], help="Misture ingredientes para descobrir uma receita secreta.")
     @commands.guild_only()
@@ -451,7 +583,11 @@ class Cafe(commands.Cog):
         bebida_data = result["bebida_data"]
         bonus_str = ""
         if result["valor_venda"] > bebida_data["preco_venda"]:
-            bonus_str = f"\nBônus da cafeteira: **+{result['valor_venda'] - bebida_data['preco_venda']} 🪙** ✨"
+            bonus_cafeteira = result["valor_venda"] - bebida_data["preco_venda"] - result.get("bonus_dia_venda", 0)
+            if bonus_cafeteira > 0:
+                bonus_str += f"\nBônus da cafeteira: **+{bonus_cafeteira} 🪙** ✨"
+        if result.get("bonus_dia_venda"):
+            bonus_str += f"\n🌟 **Bebida do dia:** +{result['bonus_dia_venda']} 🪙 bônus!"
         await ctx.send(embed=discord.Embed(
             title="💰 Venda realizada!",
             description=f"Vendeu **{bebida_data['emoji']} {bebida_data['nome']}** por **{result['valor_venda']} 🪙**!{bonus_str}\nSaldo: **{user['lumicoins']} 🪙**",
@@ -477,6 +613,17 @@ class Cafe(commands.Cog):
             return bebida["emoji"] if bebida else "❔"
 
         est_str = "  ".join(f"{emoji_bebida(key)}×{qtd}" for key, qtd in user["estoque"].items()) or "*vazio — prepare em `l!preparar`!*"
+        trabalho_cd = cooldown_restante(user["cd_trabalhar"], CD_TRABALHAR)
+        atender_cd = cooldown_restante(user["cd_atender"], CD_ATENDER)
+        cooldowns = [
+            f"💼 Trabalhar: {_cooldown_status(trabalho_cd)}",
+            f"👥 Atender: {_cooldown_status(atender_cd)}",
+        ]
+        if user.get("cliente_pendente"):
+            pendente = user["cliente_pendente"]
+            bebida = BEBIDAS.get(pendente.get("bebida"))
+            if bebida:
+                cooldowns.append(f"🪑 Cliente esperando: **{pendente['cliente']}** quer {bebida['emoji']} **{bebida['nome']}**")
         cafeteira = get_cafeteira_info(user)
         embed = discord.Embed(title=f"{nivel['emoji']} {ctx.author.display_name} — Barista", color=COR_PERFIL)
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
@@ -484,6 +631,7 @@ class Cafe(commands.Cog):
         embed.add_field(name="🪙 Lumicoins", value=f"**{user['lumicoins']}**", inline=True)
         embed.add_field(name="☕ Cafeteira", value=f"Nível **{cafeteira['nivel']}** — {cafeteira['nome']}", inline=True)
         embed.add_field(name="⭐ XP", value=xp_str, inline=False)
+        embed.add_field(name="⏱️ Cooldowns", value="\n".join(cooldowns), inline=False)
         embed.add_field(name="🎒 Ingredientes", value=inv_str, inline=False)
         embed.add_field(name="🧺 Bebidas", value=est_str, inline=False)
         await ctx.send(embed=embed.set_footer(text="Lumine Café ☕"))
@@ -526,26 +674,68 @@ class Cafe(commands.Cog):
                 ))
             if result["status"] == "pendente":
                 pendente = result["pendente"]
-                bebida = BEBIDAS[pendente["bebida"]]
+                bebida_key = pendente["bebida"]
+                bebida = BEBIDAS.get(bebida_key) or RECEITAS_SECRETAS.get(bebida_key)
+                if not bebida:
+                    return await ctx.send("❓ Nenhum cliente esperando no momento.")
+                restante = max(0, CD_CLIENTE - (_time.time() - pendente.get("ts", _time.time())))
+                vip_tag = " 👑 VIP" if pendente.get("vip") else ""
                 return await ctx.send(
-                    f"👥 {pendente['cliente']} ainda está esperando por **{bebida['emoji']} {bebida['nome']}**!\n"
-                    f"Use `l!atender {pendente['bebida']}` para servir!"
+                    f"👥{vip_tag} **{pendente['cliente']}** ainda está esperando por "
+                    f"**{bebida['emoji']} {bebida['nome']}**!\n"
+                    f"Use `l!atender {bebida_key}` para servir! ⏰ {formatar_tempo(restante)} restantes."
                 )
             cliente = result["cliente"]
-            bebida = BEBIDAS[result["bebida"]]
+            bebida_key = result["bebida"]
+            bebida = result["bebida_data"]
+            eh_vip = result["vip"]
+
+            # Salva o canal para o background task de timeout
+            await self.repo.set_client_channel_id(ctx.guild.id, ctx.author.id, ctx.channel.id)
+
+            cor_embed = discord.Color.gold() if eh_vip else COR_CAFE
+            vip_prefix = "👑 **CLIENTE VIP** — " if eh_vip else ""
+            recompensa_str = "**80–220 🪙** | **15–40 ⭐**" if eh_vip else "20–60 🪙 | 5–15 ⭐"
             embed = discord.Embed(
-                title=f"{cliente['emoji']} {cliente['nome']} chegou!",
-                description=f"*\"{result['intro']}\"*\n\nSirva com `l!atender {result['bebida']}` (**{bebida['emoji']} {bebida['nome']}**)!",
-                color=COR_CAFE,
+                title=f"{vip_prefix}{cliente['emoji']} {cliente['nome']} chegou!",
+                description=(
+                    f"*\"{result['intro']}\"*\n\n"
+                    f"Sirva com `l!atender {bebida_key}` (**{bebida['emoji']} {bebida['nome']}**)!\n"
+                    f"⏰ Você tem **5 minutos** antes de {cliente['nome']} ir embora!"
+                ),
+                color=cor_embed,
             )
-            embed.set_footer(text=f"Personalidade: {cliente['personalidade'].capitalize()} • Lumine Café ☕")
+            embed.add_field(name="💰 Recompensa potencial", value=recompensa_str, inline=True)
+            tipo_str = f"{cliente['personalidade'].capitalize()} • {'👑 VIP' if eh_vip else 'Cliente regular'}"
+            embed.set_footer(text=f"{tipo_str} • Lumine Café ☕")
             img_url = await fetch_anime_image(cliente.get("image_tags", {}).get("pedido", "smile"))
             if img_url:
                 embed.set_thumbnail(url=img_url)
             return await ctx.send(embed=embed)
 
-        result = await self.repo.update_user(ctx.guild.id, ctx.author.id, lambda user: servir_atendimento(user, bebida_oferecida))
+
+        result = await self.repo.atender_com_roubo(ctx.guild.id, ctx.author.id, bebida_oferecida)
         if not result["ok"]:
+            reason = result["reason"]
+            if reason == "cliente_expirado":
+                return await ctx.send(embed=discord.Embed(
+                    description="⏰ O cliente já foi embora antes de ser atendido... tente `l!atender` para chamar um novo!",
+                    color=COR_ERRO,
+                ))
+            if reason == "bebida_invalida":
+                return await ctx.send(f"❌ Bebida `{result['bebida']}` não existe! Veja o `l!cardapio`.")
+            if reason == "sem_estoque":
+                bebida_data = result["bebida_data"]
+                return await ctx.send(
+                    f"🧺 Você não tem **{bebida_data['emoji']} {bebida_data['nome']}** no estoque! "
+                    f"Prepare com `l!preparar {result['bebida']}` antes de tentar atender."
+                )
+            if reason == "sem_cliente_roubavel":
+                bebida_data = result["bebida_data"]
+                return await ctx.send(
+                    f"👥 Nenhum cliente de outro balcão aceitou **{bebida_data['emoji']} {bebida_data['nome']}** agora. "
+                    "Use `l!atender` para chamar um cliente seu."
+                )
             return await ctx.send("❓ Nenhum cliente esperando! Use `l!atender` para chamar um.")
 
         cliente = result["cliente"]
@@ -570,6 +760,41 @@ class Cafe(commands.Cog):
         bonus_str = ""
         if result["bonus_moedas"] > result["bonus_base"]:
             bonus_str = f"\nBônus da cafeteira: **+{result['bonus_moedas'] - result['bonus_base']} 🪙** ✨"
+
+        if result["status"] == "roubo":
+            try:
+                alvo_id = int(result["alvo_id"])
+                alvo = ctx.guild.get_member(alvo_id) or await ctx.guild.fetch_member(alvo_id)
+                alvo_nome = alvo.display_name
+            except (ValueError, discord.HTTPException):
+                alvo_nome = f"Barista #{str(result['alvo_id'])[-5:]}"
+
+            falas = cliente.get("roubado_atendido") or [
+                "Ah... troca de balcão inesperada, mas o pedido chegou direitinho."
+            ]
+            embed = discord.Embed(
+                title=f"🏃 {cliente['emoji']} {cliente['nome']} mudou de balcão!",
+                description=(
+                    f"*\"{random.choice(falas)}\"*\n\n"
+                    f"**Cliente de:** {alvo_nome}\n"
+                    f"**Bebida servida:** {bebida_data['emoji']} {bebida_data['nome']}\n"
+                    f"🪙 **+{result['bonus_moedas']} Lumicoins** | ⭐ **+{result['bonus_xp']} XP**\n"
+                    f"Saldo: **{user['lumicoins']} 🪙** | XP: **{user['xp']} ⭐**"
+                    f"{bonus_str}\n\n"
+                    f"{alvo_nome} perdeu o cliente e o cooldown continua contando. Vacilou, dançou."
+                ),
+                color=COR_OK,
+            )
+            pista = escolher_pista_receita(user, "cliente", 25, cliente=cliente)
+            if pista:
+                embed.add_field(name="🤫 Pista de cliente", value=pista, inline=False)
+            nivel = get_nivel(user["xp"])
+            embed.set_footer(text=f"{nivel['emoji']} {nivel['titulo']} • Lumine Café ☕")
+            img_url = await fetch_anime_image(cliente.get("image_tags", {}).get("feliz", "happy"))
+            if img_url:
+                embed.set_image(url=img_url)
+            return await ctx.send(embed=embed)
+
         embed = discord.Embed(
             title=f"✨ {cliente['emoji']} {cliente['nome']} foi atendido!",
             description=(
@@ -610,10 +835,10 @@ class Cafe(commands.Cog):
             "`l!loja` — Ingredientes à venda 🏪  |  `l!comprar <item> [qtd] ...` — Compre (vários!) 🛍️\n"
             "`l!cafeteira` — Veja upgrades ☕  |  `l!melhorar cafeteira` — Gaste Lumicoins em melhorias ✨\n"
             "`l!cardapio` — Veja receitas e preços 📋\n"
-            "`l!preparar <bebida>` — Prepare uma bebida ☕\n"
+            "`l!preparar <bebida> [qtd]` — Prepare uma ou várias bebidas de uma vez ☕ (ex: `l!preparar cappuccino 3`)\n"
             "`l!inventar <ing1> <ing2> ...` — Misture ingredientes pra descobrir receitas secretas! 🧪✨\n"
             "`l!estoque` — Bebidas prontas 🧺  |  `l!vender <bebida>` — Venda 💰\n"
-            "`l!atender [bebida]` — Atenda um cliente especial! 👥\n"
+            "`l!atender [bebida]` — Atenda cliente seu ou fisgue cliente distraído! 👥\n"
             "`l!cafe` — Seu perfil de barista ⭐  |  `l!ranking cafe` — Top 10 🏆",
         )
 

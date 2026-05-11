@@ -217,7 +217,6 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 0,
         "bonus_xp": 0,
         "bonus_atendimento": 0,
-        "chance_economizar": 0,
     },
     {
         "nivel": 1,
@@ -226,7 +225,6 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 5,
         "bonus_xp": 5,
         "bonus_atendimento": 0,
-        "chance_economizar": 0,
     },
     {
         "nivel": 2,
@@ -235,7 +233,6 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 10,
         "bonus_xp": 10,
         "bonus_atendimento": 0,
-        "chance_economizar": 0,
     },
     {
         "nivel": 3,
@@ -244,7 +241,6 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 15,
         "bonus_xp": 15,
         "bonus_atendimento": 5,
-        "chance_economizar": 0,
     },
     {
         "nivel": 4,
@@ -253,7 +249,6 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 20,
         "bonus_xp": 20,
         "bonus_atendimento": 10,
-        "chance_economizar": 0,
     },
     {
         "nivel": 5,
@@ -262,10 +257,16 @@ UPGRADES_CAFETEIRA: list[dict] = [
         "bonus_venda": 30,
         "bonus_xp": 25,
         "bonus_atendimento": 15,
-        "chance_economizar": 5,
     },
 ]
 
 CD_TRABALHAR = 30 * 60
 CD_ATENDER = 60 * 60
+CD_CLIENTE = 5 * 60          # tempo até o cliente desistir e ir embora (segundos)
+
+VIP_CHANCE = 15              # % de chance de aparecer um cliente VIP
+
+# Bebidas que clientes VIP podem pedir (quando usuário não tem receitas secretas)
+PREMIUM_BEBIDAS = ["frappuccino", "caramel_macchiato", "matcha_latte", "mocha"]
+
 

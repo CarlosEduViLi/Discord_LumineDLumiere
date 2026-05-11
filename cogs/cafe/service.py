@@ -6,8 +6,9 @@ import re
 import time
 import unicodedata
 
-from .catalog import BEBIDAS, CD_ATENDER, CD_TRABALHAR, INGREDIENTES, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
-from .narrative import CLIENTES
+from .catalog import BEBIDAS, CD_ATENDER, CD_CLIENTE, CD_TRABALHAR, INGREDIENTES, NIVEIS, PREMIUM_BEBIDAS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA, VIP_CHANCE
+from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
+from .narrative import CLIENTES, CLIENTES_VIP
 
 
 _SPACE_RE = re.compile(r"[\s\-]+")
@@ -260,7 +261,23 @@ def comprar(user_data: dict, tokens: tuple[str, ...] | list[str]) -> dict:
 
     user = _clone_user(user_data)
     pedidos = parsed["pedidos"]
-    custo_total = sum(INGREDIENTES[key]["preco"] * qtd for key, qtd in pedidos.items())
+
+    # Desconto diário de categoria
+    cat_desconto = get_categoria_desconto()
+    desconto_pct = get_desconto_pct()
+
+    custo_total = 0
+    linhas = []
+    for key, qtd in pedidos.items():
+        ing = INGREDIENTES[key]
+        preco_unit = ing["preco"]
+        em_promocao = ing.get("categoria") == cat_desconto
+        if em_promocao:
+            preco_unit = max(1, preco_unit * (100 - desconto_pct) // 100)
+        subtotal = preco_unit * qtd
+        custo_total += subtotal
+        linhas.append({"key": key, "quantidade": qtd, "subtotal": subtotal, "em_promocao": em_promocao})
+
     if user["lumicoins"] < custo_total:
         return {
             "ok": False,
@@ -270,12 +287,8 @@ def comprar(user_data: dict, tokens: tuple[str, ...] | list[str]) -> dict:
         }
 
     user["lumicoins"] -= custo_total
-    linhas = []
-    for key, qtd in pedidos.items():
-        ing = INGREDIENTES[key]
-        subtotal = ing["preco"] * qtd
-        user["ingredientes"][key] = user["ingredientes"].get(key, 0) + qtd
-        linhas.append({"key": key, "quantidade": qtd, "subtotal": subtotal})
+    for item in linhas:
+        user["ingredientes"][item["key"]] = user["ingredientes"].get(item["key"], 0) + item["quantidade"]
     return {"ok": True, "user": user, "pedidos": pedidos, "linhas": linhas, "custo_total": custo_total}
 
 
@@ -297,40 +310,52 @@ def melhorar_cafeteira(user_data: dict, alvo: str = "cafeteira") -> dict:
     return {"ok": True, "user": user, "upgrade": prox, "custo": custo}
 
 
-def preparar(user_data: dict, bebida_raw: str, rng=random) -> dict:
+def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) -> dict:
     user = _clone_user(user_data)
     bebida = normalizar_bebida(bebida_raw)
     catalogo = _catalogo_do_usuario(user)
     if bebida not in catalogo:
         return {"ok": False, "reason": "bebida_invalida", "opcoes": list(catalogo)}
 
+    quantidade = max(1, min(quantidade, 20))  # limite: 1–20 por vez
     bebida_data = catalogo[bebida]
-    faltando = _missing_ingredients(user, bebida_data["receita"])
+
+    # Verifica se tem ingredientes para TODAS as unidades antes de começar
+    receita_total = {key: qtd * quantidade for key, qtd in bebida_data["receita"].items()}
+    faltando = _missing_ingredients(user, receita_total)
     if faltando:
         return {"ok": False, "reason": "ingredientes_insuficientes", "bebida": bebida, "faltando": faltando}
 
     cafeteira = get_cafeteira_info(user)
-    ingrediente_poupado = None
-    if cafeteira["chance_economizar"] and rng.randint(1, 100) <= cafeteira["chance_economizar"]:
-        ingrediente_poupado = rng.choice(list(bebida_data["receita"].keys()))
+    bebida_dia = get_bebida_do_dia()
+    xp_base_unit = aplicar_bonus_percentual(bebida_data["xp"], cafeteira["bonus_xp"])
+    bonus_dia_xp_unit = 0
+    if bebida == bebida_dia:
+        bonus_dia_xp_unit = max(1, bebida_data["xp"] * get_bonus_bebida_xp_pct() // 100)
 
-    for key, qtd in bebida_data["receita"].items():
-        consumido = qtd - (1 if key == ingrediente_poupado else 0)
-        if consumido <= 0:
-            continue
-        user["ingredientes"][key] -= consumido
-        if user["ingredientes"][key] == 0:
-            del user["ingredientes"][key]
-    user["estoque"][bebida] = user["estoque"].get(bebida, 0) + 1
-    xp_ganho = aplicar_bonus_percentual(bebida_data["xp"], cafeteira["bonus_xp"])
-    user["xp"] += xp_ganho
+    xp_total = 0
+    bonus_dia_xp_total = 0
+
+    for _ in range(quantidade):
+        for key, qtd in bebida_data["receita"].items():
+            user["ingredientes"][key] = user["ingredientes"].get(key, 0) - qtd
+            if user["ingredientes"][key] <= 0:
+                del user["ingredientes"][key]
+
+        user["estoque"][bebida] = user["estoque"].get(bebida, 0) + 1
+        xp_total += xp_base_unit + bonus_dia_xp_unit
+        bonus_dia_xp_total += bonus_dia_xp_unit
+
+    user["xp"] += xp_total
     return {
         "ok": True,
         "user": user,
         "bebida": bebida,
         "bebida_data": bebida_data,
-        "xp_ganho": xp_ganho,
-        "ingrediente_poupado": ingrediente_poupado,
+        "quantidade": quantidade,
+        "xp_ganho": xp_total,
+        "bonus_dia_xp": bonus_dia_xp_total,
+        "e_bebida_do_dia": bebida == bebida_dia,
     }
 
 
@@ -393,26 +418,110 @@ def vender(user_data: dict, bebida_raw: str) -> dict:
         del user["estoque"][bebida]
     cafeteira = get_cafeteira_info(user)
     valor_venda = aplicar_bonus_percentual(bebida_data["preco_venda"], cafeteira["bonus_venda"])
+    # Bônus extra se for a bebida do dia
+    bebida_dia = get_bebida_do_dia()
+    bonus_dia_venda = 0
+    if bebida == bebida_dia:
+        bonus_dia_venda = max(1, bebida_data["preco_venda"] * get_bonus_bebida_venda_pct() // 100)
+        valor_venda += bonus_dia_venda
     user["lumicoins"] += valor_venda
-    return {"ok": True, "user": user, "bebida": bebida, "bebida_data": bebida_data, "valor_venda": valor_venda}
+    return {
+        "ok": True,
+        "user": user,
+        "bebida": bebida,
+        "bebida_data": bebida_data,
+        "valor_venda": valor_venda,
+        "bonus_dia_venda": bonus_dia_venda,
+        "e_bebida_do_dia": bebida == bebida_dia,
+    }
+
+
+def _cliente_por_nome(nome: str, rng=random) -> dict:
+    for cliente in CLIENTES:
+        if cliente["nome"] == nome:
+            return cliente
+    return rng.choice(CLIENTES)
+
+
+def is_client_expired(user_data: dict, agora: float | None = None) -> bool:
+    """Retorna True se o cliente pendente já expirou (passou CD_CLIENTE)."""
+    pendente = user_data.get("cliente_pendente")
+    if not isinstance(pendente, dict):
+        return False
+    agora = time.time() if agora is None else agora
+    return (agora - pendente.get("ts", agora)) >= CD_CLIENTE
+
+
+def _aplicar_recompensa_atendimento(user: dict, bebida: str, vip: bool = False, rng=random) -> dict:
+    if vip:
+        bonus_base = rng.randint(80, 220)
+        bonus_xp = rng.randint(15, 40)
+    else:
+        bonus_base = rng.randint(20, 60)
+        bonus_xp = rng.randint(5, 15)
+    cafeteira = get_cafeteira_info(user)
+    bonus_moedas = aplicar_bonus_percentual(bonus_base, cafeteira["bonus_atendimento"])
+    user["estoque"][bebida] -= 1
+    if user["estoque"][bebida] == 0:
+        del user["estoque"][bebida]
+    user["lumicoins"] += bonus_moedas
+    user["xp"] += bonus_xp
+    return {
+        "bonus_base": bonus_base,
+        "bonus_moedas": bonus_moedas,
+        "bonus_xp": bonus_xp,
+    }
 
 
 def iniciar_atendimento(user_data: dict, agora: float | None = None, rng=random) -> dict:
     user = _clone_user(user_data)
+    agora_ts = time.time() if agora is None else agora
+
+    # Se já tem cliente pendente verifica se expirou
     pendente = user.get("cliente_pendente")
     if pendente:
-        return {"ok": True, "user": user, "status": "pendente", "pendente": pendente}
+        if is_client_expired(user, agora_ts):
+            # Cliente já foi embora — limpa silenciosamente
+            user.pop("cliente_pendente", None)
+        else:
+            return {"ok": True, "user": user, "status": "pendente", "pendente": pendente}
 
-    cd = cooldown_restante(user["cd_atender"], CD_ATENDER, agora)
+    cd = cooldown_restante(user["cd_atender"], CD_ATENDER, agora_ts)
     if cd:
         return {"ok": False, "reason": "cooldown", "cooldown": cd}
 
-    cliente = rng.choice(CLIENTES)
-    bebida = rng.choice(list(BEBIDAS.keys()))
-    user["cliente_pendente"] = {"cliente": cliente["nome"], "bebida": bebida}
-    user["cd_atender"] = time.time() if agora is None else agora
-    intro = rng.choice(cliente["pedido_intro"]).format(bebida=BEBIDAS[bebida]["nome"])
-    return {"ok": True, "user": user, "status": "novo", "cliente": cliente, "bebida": bebida, "intro": intro}
+    # Decide se o cliente é VIP
+    eh_vip = rng.randint(1, 100) <= VIP_CHANCE
+    if eh_vip:
+        cliente = rng.choice(CLIENTES_VIP)
+        # VIP pede receita secreta desbloqueada (se tiver) ou bebida premium
+        desbloqueadas = [k for k in user.get("receitas_desbloqueadas", []) if k in RECEITAS_SECRETAS]
+        pool_vip = desbloqueadas or PREMIUM_BEBIDAS
+        bebida = rng.choice(pool_vip)
+        catalogo_bebida = BEBIDAS.get(bebida) or RECEITAS_SECRETAS.get(bebida)
+    else:
+        cliente = rng.choice(CLIENTES)
+        bebida = rng.choice(list(BEBIDAS.keys()))
+        catalogo_bebida = BEBIDAS[bebida]
+
+    user["cliente_pendente"] = {
+        "cliente": cliente["nome"],
+        "bebida": bebida,
+        "ts": agora_ts,
+        "vip": eh_vip,
+    }
+    user["cd_atender"] = agora_ts
+    intro = rng.choice(cliente["pedido_intro"]).format(bebida=catalogo_bebida["nome"])
+    return {
+        "ok": True,
+        "user": user,
+        "status": "novo",
+        "cliente": cliente,
+        "bebida": bebida,
+        "bebida_data": catalogo_bebida,
+        "intro": intro,
+        "vip": eh_vip,
+    }
 
 
 def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
@@ -421,10 +530,17 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
     if not pendente:
         return {"ok": False, "reason": "sem_cliente"}
 
+    # Checa expiração
+    if is_client_expired(user):
+        user.pop("cliente_pendente", None)
+        return {"ok": False, "reason": "cliente_expirado", "user": user}
+
     bebida_oferecida = normalizar_bebida(bebida_raw)
-    cliente = next((c for c in CLIENTES if c["nome"] == pendente["cliente"]), rng.choice(CLIENTES))
+    all_clients = CLIENTES + CLIENTES_VIP
+    cliente = next((c for c in all_clients if c["nome"] == pendente["cliente"]), rng.choice(CLIENTES))
     bebida_pedida = pendente["bebida"]
-    bebida_data = BEBIDAS[bebida_pedida]
+    eh_vip = pendente.get("vip", False)
+    bebida_data = BEBIDAS.get(bebida_pedida) or RECEITAS_SECRETAS.get(bebida_pedida)
 
     errou = bebida_oferecida != bebida_pedida or not user["estoque"].get(bebida_oferecida, 0)
     if errou:
@@ -438,17 +554,10 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
             "cliente": cliente,
             "bebida": bebida_pedida,
             "bebida_data": bebida_data,
+            "vip": eh_vip,
         }
 
-    bonus_base = rng.randint(20, 60)
-    cafeteira = get_cafeteira_info(user)
-    bonus_moedas = aplicar_bonus_percentual(bonus_base, cafeteira["bonus_atendimento"])
-    bonus_xp = rng.randint(5, 15)
-    user["estoque"][bebida_oferecida] -= 1
-    if user["estoque"][bebida_oferecida] == 0:
-        del user["estoque"][bebida_oferecida]
-    user["lumicoins"] += bonus_moedas
-    user["xp"] += bonus_xp
+    recompensa = _aplicar_recompensa_atendimento(user, bebida_pedida, vip=eh_vip, rng=rng)
     user.pop("cliente_pendente", None)
     return {
         "ok": True,
@@ -457,7 +566,52 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
         "cliente": cliente,
         "bebida": bebida_pedida,
         "bebida_data": bebida_data,
-        "bonus_base": bonus_base,
-        "bonus_moedas": bonus_moedas,
-        "bonus_xp": bonus_xp,
+        "vip": eh_vip,
+        **recompensa,
+    }
+
+
+def roubar_atendimento(user_data: dict, bebida_raw: str, candidatos: list[tuple[str, dict]], rng=random) -> dict:
+    user = _clone_user(user_data)
+    if user.get("cliente_pendente"):
+        return {"ok": False, "reason": "cliente_proprio_pendente"}
+
+    bebida = normalizar_bebida(bebida_raw)
+    bebida_data = BEBIDAS.get(bebida)
+    if bebida_data is None:
+        return {"ok": False, "reason": "bebida_invalida", "bebida": bebida}
+    if not user["estoque"].get(bebida, 0):
+        return {"ok": False, "reason": "sem_estoque", "bebida": bebida, "bebida_data": bebida_data}
+
+    opcoes: list[tuple[float, str, dict, dict]] = []
+    for alvo_id, alvo_data in candidatos:
+        alvo = _clone_user(alvo_data)
+        pendente = alvo.get("cliente_pendente")
+        if not isinstance(pendente, dict) or pendente.get("bebida") != bebida:
+            continue
+        # Não roubar clientes já expirados
+        if is_client_expired(alvo):
+            continue
+        opcoes.append((float(alvo.get("cd_atender") or 0), str(alvo_id), alvo, pendente))
+
+    if not opcoes:
+        return {"ok": False, "reason": "sem_cliente_roubavel", "bebida": bebida, "bebida_data": bebida_data}
+
+    _, alvo_id, alvo, pendente = min(opcoes, key=lambda item: item[0])
+    eh_vip = pendente.get("vip", False)
+    all_clients = CLIENTES + CLIENTES_VIP
+    cliente = next((c for c in all_clients if c["nome"] == pendente.get("cliente", "")), rng.choice(CLIENTES))
+    recompensa = _aplicar_recompensa_atendimento(user, bebida, vip=eh_vip, rng=rng)
+    alvo.pop("cliente_pendente", None)
+    return {
+        "ok": True,
+        "user": user,
+        "status": "roubo",
+        "alvo_id": alvo_id,
+        "alvo_user": alvo,
+        "cliente": cliente,
+        "bebida": bebida,
+        "bebida_data": bebida_data,
+        "vip": eh_vip,
+        **recompensa,
     }
