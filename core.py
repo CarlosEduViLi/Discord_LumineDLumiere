@@ -78,7 +78,6 @@ COGS = [
     "cogs.cafe",
     "cogs.playlists",
     "cogs.pokemon",
-    "cogs.humor",
 ]
 
 
