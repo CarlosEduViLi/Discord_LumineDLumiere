@@ -7,6 +7,12 @@ import discord
 import wavelink
 from discord.ext import commands
 
+try:
+    from utils.mood import get_humor_atual as _get_humor_atual, frase_com_humor as _frase_humor
+    _MOOD_MUSIC_OK = True
+except Exception:
+    _MOOD_MUSIC_OK = False
+
 _URL_RE = re.compile(r"^https?://", re.IGNORECASE)
 _SPOTIFY_RE = re.compile(
     r"https?://open\.spotify\.com/(track|album|playlist|artist)/[\w]+",
@@ -98,6 +104,68 @@ _PAUSE_REMINDER_MSGS = [
     "Continuando meu trabalho de guardiã da música~ 🌸 {mention}, ainda aqui! Pode voltar quando quiser, tá? 💙✨",
 ]
 
+_EMPTY_CHANNEL_MSGS_POR_HUMOR: dict[str, list[str]] = {
+    "manha": [
+        "Que manhã quietinha ficou... 🌅 Vou esperar vocês voltarem com energia! Me chamem quando quiserem música~ 💙",
+        "Ops, o canal ficou vazio tão cedo! ☀️ Vou descansar antes do expediente continuar~ Até logo! 🎵",
+    ],
+    "tarde": [
+        "Hmm... parece que todos foram embora e me deixaram sozinha aqui... 🥺💙 Tudo bem! Estarei aqui quando me chamarem de volta~",
+        "Bem, eu amo companhia, mas tocar pra ninguém é um pouquinho solitário... 😢💫 Até logo! Cuida-se bem!",
+    ],
+    "entardecer": [
+        "Esperei bastante, mas parece que ficou só eu no canal... 🌸 Vou embora por enquanto! Quando quiserem música, é só me chamar~",
+        "O canal foi ficando vazio assim como o céu vai ficando dourado... 🌆 Saí por agora, mas volto quando quiserem~ 💙",
+        "Que entardecer solitário... 🌇 Fui me recolher. Quando a animação voltar, me chamem! 🎵",
+    ],
+    "noite": [
+        "Ah... o silêncio ficou grande demais pra mim aguentar sozinha... 🌙 Saí por agora, mas estarei aqui quando precisarem de música! 💙",
+        "Ah... ficou só o silêncio da noite aqui... 🌙 Vou descansar~ Quando precisarem de música é só me chamar de volta! 💙",
+        "A noite ficou quietinha e eu também vou me recolher... 🌙💤 Até logo, com carinho~",
+    ],
+    "madrugada": [
+        "Ficou tão silencioso... 🤍 Vou descansar um pouco! Quando a turma voltar, me chama que eu corro~ 🎵",
+        "Na madrugada silenciosa não tem mais ninguém... 🌌 Vou me fundir com o silêncio por um tempo~ 💙",
+        "Hmm... todos partiram na calada da noite... 🌌 Até a próxima~ 💤",
+    ],
+}
+
+_PAUSE_REMINDER_MSGS_POR_HUMOR: dict[str, list[str]] = {
+    "manha": [
+        "Oi {mention}! 🌸 Só passando pra lembrar que a música está pausada esperando por você~ Use `l!resume` quando quiser!",
+        "{mention}, você sumiu! 😊 A musiquinha e eu ficamos esperando com carinho... Pode continuar quando quiser! 🎵",
+        "{mention}! 🎵 Lembrete fofo da sua Lumine: `l!resume` faz a magia acontecer quando você estiver pronto(a)~",
+        "{mention}~ ☀️ Bom dia ainda! A música está pausadinha esperando você acordar de vez~ Use `l!resume`!",
+        "Ei {mention}! 🌅 A manhã está passando e sua música espera por você~ 🎵",
+    ],
+    "tarde": [
+        "Ei, {mention}~ 🥺 A musiquinha ainda está pausada aqui... Tudo bem com você? Quando quiser continuar é só falar!",
+        "{mention}! 🎵 A musiquinha tá na pausa te esperando com saudade... Quando tiver pronto(a) é só usar `l!resume`!",
+        "{mention}, a Lumine não foi embora não~ 💙 Continuo aqui esperando você retomar a música quando quiser!",
+        "Lembrete de carinho: {mention}~ 🌟 Sua música está me esperando! Quando estiver pronto(a), `l!resume` resolve!",
+        "Oi {mention}~ 🥺 Passei só pra checar se está tudo bem! A música continua parada esperando por você com carinho~",
+    ],
+    "entardecer": [
+        "Ainda aqui~ 🌸 {mention}, não esquece de mim! A musiquinha está pausada esperando seu retorno com ansiedade!",
+        "{mention}! 💫 Você me deixou em pausa faz um tempinho... Não que eu me importe, mas a música sente falta de você~ 🎶",
+        "Continuando meu trabalho de guardiã da música~ 🌸 {mention}, ainda aqui! Pode voltar quando quiser, tá? 💙✨",
+        "{mention}... 🌆 O entardecer está lindo, mas sua música ainda te espera~ Use `l!resume` quando quiser.",
+        "Hmm~ {mention}, a tarde vai virando noite e a musiquinha continua na pausa... 🌇 Sem pressa, tá?",
+    ],
+    "noite": [
+        "Hm~ {mention}, notei que ainda está pausado(a)... 🌙 Sem pressa, tá? Só me avisa quando quiser continuar!",
+        "Oi oi, {mention}~ 🤍 Só um lembrete fofo: a música ainda está pausadinha aqui me esperando com você!",
+        "Hmm, {mention}... 🌙 Estou guardando sua música com todo cuidado aqui! É só falar quando quiser continuar~ 💙",
+        "{mention}... 🌙 A noite ficou quietinha~ Sua música ainda me espera aqui. Dorme não! Use `l!resume`~",
+        "Psiu, {mention}~ 🌙 Noite calma, mas a música ainda está pausada esperando com carinho~",
+    ],
+    "madrugada": [
+        "Psiu, {mention}~ 💫 A Lumine aqui lembrando que sua música ainda está esperando por você com todo carinho~",
+        "{mention}... 🌌 Ainda acordado(a) na madrugada? A música continua esperando em silêncio com você~",
+        "Hmm~ {mention}... 🌌 Que hora é essa... a musiquinha te espera quietinha. Tá bem? Use `l!resume`~",
+    ],
+}
+
 
 class Music(commands.Cog):
     """🎵 Música com carinho da Lumine 💙"""
@@ -162,7 +230,8 @@ class Music(commands.Cog):
             return  # Alguém voltou, cancela
         ch = getattr(player, "reply_channel", None)
         if ch:
-            await ch.send(random.choice(_EMPTY_CHANNEL_MSGS))
+            msg = _frase_humor(_EMPTY_CHANNEL_MSGS_POR_HUMOR, _EMPTY_CHANNEL_MSGS) if _MOOD_MUSIC_OK else random.choice(_EMPTY_CHANNEL_MSGS)
+            await ch.send(msg)
         self._cancel_all_timers(guild_id)
         await player.disconnect()
 
@@ -175,8 +244,8 @@ class Music(commands.Cog):
             await asyncio.sleep(600)  # 10 minutos
             # Se o task foi cancelado (resume/stop), asyncio.CancelledError sobe aqui
             if ch:
-                msg = random.choice(_PAUSE_REMINDER_MSGS).format(mention=mention)
-                await ch.send(msg)
+                raw = _frase_humor(_PAUSE_REMINDER_MSGS_POR_HUMOR, _PAUSE_REMINDER_MSGS) if _MOOD_MUSIC_OK else random.choice(_PAUSE_REMINDER_MSGS)
+                await ch.send(raw.format(mention=mention))
 
     # ---- Wavelink events ----
 
@@ -249,12 +318,17 @@ class Music(commands.Cog):
         embed.add_field(name="🎤 Autor", value=track.author or "Desconhecido", inline=True)
         embed.add_field(name="⏱️ Duração", value=self._fmt(track), inline=True)
         mode = player.queue.mode
-        if mode == wavelink.QueueMode.loop:
-            footer = "🔁 Loop da música ativo~ Espero que goste! 💙 — Lumine"
-        elif mode == wavelink.QueueMode.loop_all:
-            footer = "🔁 Loop da fila ativo~ Espero que goste! 💙 — Lumine"
+        if _MOOD_MUSIC_OK:
+            humor = _get_humor_atual()
+            prefix = f"{humor.emoji} {humor.nome} • " if humor.id != "tarde" else ""
         else:
-            footer = "Espero que goste! 💙 — Lumine"
+            prefix = ""
+        if mode == wavelink.QueueMode.loop:
+            footer = f"🔁 Loop da música ativo~ {prefix}Espero que goste! 💙 — Lumine"
+        elif mode == wavelink.QueueMode.loop_all:
+            footer = f"🔁 Loop da fila ativo~ {prefix}Espero que goste! 💙 — Lumine"
+        else:
+            footer = f"{prefix}Espero que goste! 💙 — Lumine"
         embed.set_footer(text=footer)
         if track.artwork:
             embed.set_thumbnail(url=track.artwork)

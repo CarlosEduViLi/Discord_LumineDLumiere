@@ -13,6 +13,11 @@ import unicodedata
 import discord
 from discord.ext import commands
 
+try:
+    from utils.mood import get_humor_atual as _get_humor_atual
+    _MOOD_HELP_OK = True
+except Exception:
+    _MOOD_HELP_OK = False
 
 COR_LUMINE = discord.Color.from_rgb(100, 180, 255)
 
@@ -55,8 +60,16 @@ class Help(commands.Cog):
     # ──────────────────────────────────────────────────────────────
 
     def _embed_cardapio(self) -> discord.Embed:
+        if _MOOD_HELP_OK:
+            humor = _get_humor_atual()
+            titulo = humor.saudacao
+            footer = f"{humor.emoji} {humor.nome} • Em que posso te servir hoje? 💙 — Lumine D'Lumière"
+        else:
+            titulo = "✨ Olá! Sou a Lumine, sua maid~ 💙"
+            footer = "Em que posso te servir hoje? 💙 — Lumine D'Lumière"
+
         embed = discord.Embed(
-            title="✨ Olá! Sou a Lumine, sua maid~ 💙",
+            title=titulo,
             description=(
                 "Estou pronta pra te servir! Posso te ajudar com várias coisinhas~\n"
                 "Use `l!help <categoria>` que eu explico tudo direitinho! 🎀\n​"
@@ -77,7 +90,7 @@ class Help(commands.Cog):
             value="\n".join(linhas) or "*Ainda não tenho nada pra te oferecer...* 🥺",
             inline=False,
         )
-        embed.set_footer(text="Em que posso te servir hoje? 💙 — Lumine D'Lumière")
+        embed.set_footer(text=footer)
         return embed
 
     def _embed_categoria(self, cog, meta: dict) -> discord.Embed:

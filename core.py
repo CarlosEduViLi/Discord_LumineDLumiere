@@ -4,8 +4,14 @@ import socket
 import subprocess
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
+
+try:
+    from utils.mood import get_humor_atual
+    _MOOD_OK = True
+except Exception:
+    _MOOD_OK = False
 
 
 load_dotenv()
@@ -72,7 +78,29 @@ COGS = [
     "cogs.cafe",
     "cogs.playlists",
     "cogs.pokemon",
+    "cogs.humor",
 ]
+
+
+async def _atualizar_presenca():
+    if not _MOOD_OK:
+        return
+    try:
+        humor = get_humor_atual()
+        tipo = discord.ActivityType(humor.activity_type_value)
+        await bot.change_presence(activity=discord.Activity(type=tipo, name=humor.activity_text))
+    except Exception as exc:
+        print(f"  Aviso: não foi possível atualizar presença: {exc}")
+
+
+@tasks.loop(minutes=30)
+async def _rotacionar_humor():
+    await _atualizar_presenca()
+
+
+@_rotacionar_humor.before_loop
+async def _before_rotacionar():
+    await bot.wait_until_ready()
 
 
 @bot.event
@@ -82,6 +110,9 @@ async def on_ready():
     print(f"  ID: {bot.user.id}")
     print("  Prefixo: l!")
     print(f"{'=' * 40}")
+    await _atualizar_presenca()
+    if not _rotacionar_humor.is_running():
+        _rotacionar_humor.start()
 
 
 @bot.event
