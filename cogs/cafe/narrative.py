@@ -392,6 +392,43 @@ FRASES_TRABALHAR: list[str] = [
     "Você ensinou uma receita nova a um colega barista! 👩‍🍳",
 ]
 
+FRASES_TRABALHAR_POR_HUMOR: dict[str, list[str]] = {
+    "manha": [
+        "Você preparou o mise en place do dia com perfeição! 📋",
+        "Você recebeu os fornecedores e organizou o estoque! 📦",
+        "Você chegou cedo e deixou tudo pronto antes de todo mundo! ☀️ Que disposição!",
+        "Você preparou o mise en place antes do amanhecer! 🌅 A cafeteria abre mais feliz assim~",
+        "Você limpou e organizou com tanta energia que até as xícaras ficaram admiradas! ✨",
+    ],
+    "tarde": [
+        "Você atendeu a fila do almoço sem deixar ninguém esperando! 🏃",
+        "Você ajudou o caixa e distribuiu sorriso pra todo mundo! 😊",
+        "Você limpou as mesas e deixou tudo cheiroso! ✨",
+        "Você calibrou a máquina de café e ela ficou perfeita! ⚙️",
+    ],
+    "entardecer": [
+        "Você organizou a vitrine de doces lindamente! 🍰",
+        "Você ensinou uma receita nova a um colega barista! 👩‍🍳",
+        "Você organizou os últimos pedidos da tarde com uma calma invejável... 🌆",
+        "Você decorou o salão com flores frescas enquanto o sol ia embora. Ficou lindo~ 🌸",
+        "Você ajudou a fechar o turno da tarde com tanto capricho... 🌇 Que belo fim de expediente.",
+    ],
+    "noite": [
+        "Você limpou as mesas e deixou tudo em ordem pro dia seguinte! ✨",
+        "Você varreu o salão e fez tudo brilhar! ✨",
+        "Você cuidou dos clientes noturnos com um carinho especial~ 🌙 Eles saíram sorrindo.",
+        "Você preparou os doces da noite com voz suave e mãos gentis... 💙 Ficaram perfeitos.",
+        "Você limpou o salão sob a luz da lamparina e deixou tudo em silêncio e brilho~ 🌙",
+    ],
+    "madrugada": [
+        "Você calibrou a máquina de café no silêncio da madrugada e ela ficou perfeita! ⚙️",
+        "Você decorou a lousa do cardápio com sua melhor letra enquanto a cidade dormia! 🖊️",
+        "Você manteve o café quente na madrugada para quem chegou tarde... 🌌 Que dedicação.",
+        "Você varreu o salão no silêncio da madrugada, e cada gesto parecia um ritual~ ✨",
+        "Você preparou a abertura do dia seguinte enquanto todos dormiam... 🌌 Obrigada~ 💙",
+    ],
+}
+
 FRASES_INVENTAR_ERRO: list[str] = [
     "Ai não... a mistura espumou até o teto! Acho que precisamos limpar isso... 💦",
     "Ugh... o cheiro disso não está muito bom... Que tal não servirmos pra ninguém? 🤢",

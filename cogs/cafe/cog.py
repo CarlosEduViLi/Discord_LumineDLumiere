@@ -9,7 +9,13 @@ from discord.ext import commands, tasks
 from .catalog import BEBIDAS, CD_CLIENTE, CD_ATENDER, CD_TRABALHAR, INGREDIENTES, LOJA_CATEGORIAS, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
 from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
 from .images import fetch_anime_image
-from .narrative import CLIENTES, CLIENTES_VIP, FRASES_BEBIDA_DO_DIA, FRASES_CATEGORIA_DESCONTO, FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, escolher_pista_receita
+from .narrative import CLIENTES, CLIENTES_VIP, FRASES_BEBIDA_DO_DIA, FRASES_CATEGORIA_DESCONTO, FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, FRASES_TRABALHAR_POR_HUMOR, escolher_pista_receita
+
+try:
+    from utils.mood import frase_com_humor as _frase_humor
+    _MOOD_CAFE_OK = True
+except Exception:
+    _MOOD_CAFE_OK = False
 from .repository import CafeRepository
 from .service import (
     comprar as regra_comprar,
@@ -228,7 +234,7 @@ class Cafe(commands.Cog):
         embed = discord.Embed(
             title="💼 Turno concluído!",
             description=(
-                f"*{random.choice(FRASES_TRABALHAR)}*\n\n"
+                f"*{_frase_humor(FRASES_TRABALHAR_POR_HUMOR, FRASES_TRABALHAR) if _MOOD_CAFE_OK else random.choice(FRASES_TRABALHAR)}*\n\n"
                 f"Ganhou **{result['ganho']} Lumicoins** 🪙 — Saldo: **{user['lumicoins']} 🪙**"
             ),
             color=COR_OK,
