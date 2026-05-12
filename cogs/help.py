@@ -14,7 +14,7 @@ import discord
 from discord.ext import commands
 
 try:
-    from utils.mood import get_humor_atual as _get_humor_atual
+    from utils.mood import get_humor_atual as _get_humor_atual, saudacao_do_humor as _saudacao_do_humor
     _MOOD_HELP_OK = True
 except Exception:
     _MOOD_HELP_OK = False
@@ -62,7 +62,7 @@ class Help(commands.Cog):
     def _embed_cardapio(self) -> discord.Embed:
         if _MOOD_HELP_OK:
             humor = _get_humor_atual()
-            titulo = humor.saudacao
+            titulo = _saudacao_do_humor(humor)
             footer = f"{humor.emoji} {humor.nome} • Em que posso te servir hoje? 💙 — Lumine D'Lumière"
         else:
             titulo = "✨ Olá! Sou a Lumine, sua maid~ 💙"
