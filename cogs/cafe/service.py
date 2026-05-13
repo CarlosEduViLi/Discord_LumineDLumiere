@@ -571,6 +571,61 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
     }
 
 
+def dar_moedas(user_sender: dict, user_receiver: dict, quantidade: int) -> dict:
+    if quantidade < 1:
+        return {"ok": False, "reason": "quantidade_invalida"}
+    sender = _clone_user(user_sender)
+    receiver = _clone_user(user_receiver)
+    if sender["lumicoins"] < quantidade:
+        return {"ok": False, "reason": "saldo_insuficiente", "saldo": sender["lumicoins"]}
+    sender["lumicoins"] -= quantidade
+    receiver["lumicoins"] += quantidade
+    return {"ok": True, "user_sender": sender, "user_receiver": receiver, "quantidade": quantidade}
+
+
+def executar_troca(
+    user_a: dict, user_b: dict,
+    ing_a: str, qtd_a: int,
+    ing_b: str, qtd_b: int,
+) -> dict:
+    if ing_a not in INGREDIENTES:
+        return {"ok": False, "reason": "ingrediente_invalido", "ingrediente": ing_a}
+    if ing_b not in INGREDIENTES:
+        return {"ok": False, "reason": "ingrediente_invalido", "ingrediente": ing_b}
+    a = _clone_user(user_a)
+    b = _clone_user(user_b)
+    if a["ingredientes"].get(ing_a, 0) < qtd_a:
+        return {
+            "ok": False, "reason": "sem_ingredientes_a",
+            "ingrediente": ing_a,
+            "tem": a["ingredientes"].get(ing_a, 0),
+            "precisa": qtd_a,
+        }
+    if b["ingredientes"].get(ing_b, 0) < qtd_b:
+        return {
+            "ok": False, "reason": "sem_ingredientes_b",
+            "ingrediente": ing_b,
+            "tem": b["ingredientes"].get(ing_b, 0),
+            "precisa": qtd_b,
+        }
+    a["ingredientes"][ing_a] -= qtd_a
+    if a["ingredientes"][ing_a] == 0:
+        del a["ingredientes"][ing_a]
+    a["ingredientes"][ing_b] = a["ingredientes"].get(ing_b, 0) + qtd_b
+
+    b["ingredientes"][ing_b] -= qtd_b
+    if b["ingredientes"][ing_b] == 0:
+        del b["ingredientes"][ing_b]
+    b["ingredientes"][ing_a] = b["ingredientes"].get(ing_a, 0) + qtd_a
+
+    return {
+        "ok": True,
+        "user_a": a, "user_b": b,
+        "ing_a": ing_a, "qtd_a": qtd_a,
+        "ing_b": ing_b, "qtd_b": qtd_b,
+    }
+
+
 def roubar_atendimento(user_data: dict, bebida_raw: str, candidatos: list[tuple[str, dict]], rng=random) -> dict:
     user = _clone_user(user_data)
     if user.get("cliente_pendente"):

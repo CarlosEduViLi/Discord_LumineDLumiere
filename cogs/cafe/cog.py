@@ -20,6 +20,8 @@ from .repository import CafeRepository
 from .service import (
     comprar as regra_comprar,
     cooldown_restante,
+    dar_moedas as regra_dar,
+    executar_troca as regra_trocar,
     formatar_tempo,
     get_cafeteira_info,
     get_cafeteira_nivel,
@@ -28,6 +30,7 @@ from .service import (
     inventar as regra_inventar,
     is_client_expired,
     melhorar_cafeteira,
+    normalizar_ingrediente,
     preparar as regra_preparar,
     trabalhar as regra_trabalhar,
     vender as regra_vender,
@@ -103,6 +106,131 @@ class LojaView(discord.ui.View):
     @discord.ui.button(emoji="➡️", style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._turn(interaction, +1)
+
+
+def _parse_trade_side(tokens: list[str]) -> tuple[str | None, int, str]:
+    """Interpreta um lado da troca (ex: ["grão", "5"] ou ["leite", "condensado", "2"]).
+    Retorna (chave_ingrediente | None, quantidade, nome_digitado)."""
+    if not tokens:
+        return None, 1, ""
+    qtd = 1
+    name_tokens = list(tokens)
+    if name_tokens[-1].isdigit():
+        qtd = max(1, int(name_tokens[-1]))
+        name_tokens = name_tokens[:-1]
+    if not name_tokens:
+        return None, qtd, ""
+    raw = " ".join(name_tokens)
+    return normalizar_ingrediente(raw), qtd, raw
+
+
+class TradeView(discord.ui.View):
+    def __init__(
+        self,
+        cog: "Cafe",
+        sender: discord.abc.User,
+        receiver: discord.abc.User,
+        guild_id: int,
+        ing_a: str,
+        qtd_a: int,
+        ing_b: str,
+        qtd_b: int,
+    ):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.sender = sender
+        self.receiver = receiver
+        self.guild_id = guild_id
+        self.ing_a = ing_a
+        self.qtd_a = qtd_a
+        self.ing_b = ing_b
+        self.qtd_b = qtd_b
+        self.message: discord.Message | None = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.receiver:
+            await interaction.response.send_message(
+                "Só quem recebeu a proposta pode responder~ 💙", ephemeral=True
+            )
+            return False
+        return True
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True  # type: ignore
+        if self.message:
+            try:
+                ing_a_info = INGREDIENTES[self.ing_a]
+                ing_b_info = INGREDIENTES[self.ing_b]
+                embed = discord.Embed(
+                    title="⏰ Proposta expirada",
+                    description=(
+                        f"**{self.sender.display_name}** ofereceu **{self.qtd_a}× {ing_a_info['emoji']} {ing_a_info['nome']}**"
+                        f" por **{self.qtd_b}× {ing_b_info['emoji']} {ing_b_info['nome']}**\n\n"
+                        f"{self.receiver.display_name} não respondeu a tempo."
+                    ),
+                    color=COR_ERRO,
+                )
+                await self.message.edit(embed=embed, view=self)
+            except discord.HTTPException:
+                pass
+
+    @discord.ui.button(label="Aceitar", emoji="🤝", style=discord.ButtonStyle.success)
+    async def aceitar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        result = await self.cog.repo.trocar_ingredientes(
+            self.guild_id, self.sender.id, self.receiver.id,
+            self.ing_a, self.qtd_a, self.ing_b, self.qtd_b,
+        )
+        ing_a_info = INGREDIENTES[self.ing_a]
+        ing_b_info = INGREDIENTES[self.ing_b]
+        for item in self.children:
+            item.disabled = True  # type: ignore
+        if result["ok"]:
+            embed = discord.Embed(
+                title="✅ Troca realizada!",
+                description=(
+                    f"**{self.sender.display_name}** entregou **{self.qtd_a}× {ing_a_info['emoji']} {ing_a_info['nome']}**\n"
+                    f"**{self.receiver.display_name}** entregou **{self.qtd_b}× {ing_b_info['emoji']} {ing_b_info['nome']}**\n\n"
+                    "Troca concluída com sucesso~ 🤝💙"
+                ),
+                color=COR_OK,
+            )
+        else:
+            reason = result["reason"]
+            if reason == "sem_ingredientes_a":
+                quem = self.sender.display_name
+                ing_info = ing_a_info
+                tem, precisa = result["tem"], result["precisa"]
+            else:
+                quem = self.receiver.display_name
+                ing_info = ing_b_info
+                tem, precisa = result["tem"], result["precisa"]
+            embed = discord.Embed(
+                title="❌ Troca cancelada!",
+                description=(
+                    f"**{quem}** não tem ingredientes suficientes!\n"
+                    f"{ing_info['emoji']} **{ing_info['nome']}**: tem **{tem}**, precisava de **{precisa}**."
+                ),
+                color=COR_ERRO,
+            )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Recusar", emoji="❌", style=discord.ButtonStyle.danger)
+    async def recusar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ing_a_info = INGREDIENTES[self.ing_a]
+        ing_b_info = INGREDIENTES[self.ing_b]
+        for item in self.children:
+            item.disabled = True  # type: ignore
+        embed = discord.Embed(
+            title="❌ Proposta recusada",
+            description=(
+                f"**{self.receiver.display_name}** recusou a troca de "
+                f"**{self.qtd_a}× {ing_a_info['emoji']} {ing_a_info['nome']}**"
+                f" por **{self.qtd_b}× {ing_b_info['emoji']} {ing_b_info['nome']}**."
+            ),
+            color=COR_ERRO,
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 class Cafe(commands.Cog):
@@ -821,6 +949,93 @@ class Cafe(commands.Cog):
             embed.set_image(url=img_url)
         await ctx.send(embed=embed)
 
+    @commands.command(name="dar", aliases=["give", "pagar"], help="Dê Lumicoins para outro barista. Ex: l!dar @user 100")
+    @commands.guild_only()
+    async def dar(self, ctx: commands.Context, membro: discord.Member, quantidade: int):
+        if membro == ctx.author:
+            return await ctx.send(embed=discord.Embed(
+                description="💙 Você não pode dar moedas para si mesmo~", color=COR_ERRO,
+            ))
+        if membro.bot:
+            return await ctx.send(embed=discord.Embed(
+                description="🤖 Bots não precisam de Lumicoins~", color=COR_ERRO,
+            ))
+        result = await self.repo.dar_moedas(ctx.guild.id, ctx.author.id, membro.id, quantidade)
+        if not result["ok"]:
+            if result["reason"] == "quantidade_invalida":
+                return await ctx.send(embed=discord.Embed(
+                    description="❌ A quantidade precisa ser pelo menos **1 🪙**.", color=COR_ERRO,
+                ))
+            return await ctx.send(embed=discord.Embed(
+                title="💸 Saldo insuficiente!",
+                description=(
+                    f"Você tem **{result['saldo']} 🪙** mas tentou dar **{quantidade} 🪙**.\n"
+                    "Use `l!trabalhar` para ganhar mais!"
+                ),
+                color=COR_ERRO,
+            ))
+        embed = discord.Embed(
+            title="💸 Lumicoins enviados!",
+            description=(
+                f"**{ctx.author.display_name}** deu **{quantidade} 🪙** para **{membro.display_name}**~ 💙\n\n"
+                f"Saldo restante: **{result['user_sender']['lumicoins']} 🪙**"
+            ),
+            color=COR_OK,
+        )
+        embed.set_footer(text="Lumine Café ☕ • Que generoso~")
+        await ctx.send(embed=embed)
+
+    @commands.command(name="trocar", aliases=["trade", "troca"], help="Proponha uma troca de ingredientes. Ex: l!trocar @user grão 5 por leite 3")
+    @commands.guild_only()
+    async def trocar(self, ctx: commands.Context, membro: discord.Member, *args: str):
+        _USO = "❌ Formato: `l!trocar @user <ingrediente> [qtd] por <ingrediente> [qtd]`\nEx: `l!trocar @Carlos grão 5 por leite 3`"
+        if membro == ctx.author:
+            return await ctx.send(embed=discord.Embed(description="💙 Você não pode trocar consigo mesmo~", color=COR_ERRO))
+        if membro.bot:
+            return await ctx.send(embed=discord.Embed(description="🤖 Bots não têm ingredientes pra trocar~", color=COR_ERRO))
+        if not args:
+            return await ctx.send(_USO)
+
+        combined = " ".join(args)
+        parts = combined.split(" por ", 1)
+        if len(parts) != 2:
+            return await ctx.send(_USO)
+
+        key_a, qtd_a, raw_a = _parse_trade_side(parts[0].split())
+        key_b, qtd_b, raw_b = _parse_trade_side(parts[1].split())
+
+        if key_a is None:
+            return await ctx.send(f"❌ Ingrediente `{raw_a}` não existe! Use `l!loja` para ver as opções.")
+        if key_b is None:
+            return await ctx.send(f"❌ Ingrediente `{raw_b}` não existe! Use `l!loja` para ver as opções.")
+
+        # Valida pré-proposta: sender tem o que vai dar
+        user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
+        tem = user["ingredientes"].get(key_a, 0)
+        if tem < qtd_a:
+            ing_info = INGREDIENTES[key_a]
+            return await ctx.send(embed=discord.Embed(
+                title="😢 Ingredientes insuficientes!",
+                description=f"Você tem **{tem}× {ing_info['emoji']} {ing_info['nome']}** mas quer dar **{qtd_a}×**.",
+                color=COR_ERRO,
+            ))
+
+        ing_a_info = INGREDIENTES[key_a]
+        ing_b_info = INGREDIENTES[key_b]
+        embed = discord.Embed(
+            title="🤝 Proposta de troca!",
+            description=(
+                f"**{ctx.author.display_name}** quer trocar com {membro.mention}:\n\n"
+                f"Dá: **{qtd_a}× {ing_a_info['emoji']} {ing_a_info['nome']}**\n"
+                f"Recebe: **{qtd_b}× {ing_b_info['emoji']} {ing_b_info['nome']}**\n\n"
+                f"⏰ {membro.mention}, você tem **60 segundos** para responder!"
+            ),
+            color=COR_LOJA,
+        )
+        embed.set_footer(text="Lumine Café ☕ • Negociação em andamento~")
+        view = TradeView(self, ctx.author, membro, ctx.guild.id, key_a, qtd_a, key_b, qtd_b)
+        view.message = await ctx.send(embed=embed, view=view)
+
     def help_meta(self) -> dict:
         return {
             "key": "cafe",
@@ -845,7 +1060,9 @@ class Cafe(commands.Cog):
             "`l!inventar <ing1> <ing2> ...` — Misture ingredientes pra descobrir receitas secretas! 🧪✨\n"
             "`l!estoque` — Bebidas prontas 🧺  |  `l!vender <bebida>` — Venda 💰\n"
             "`l!atender [bebida]` — Atenda cliente seu ou fisgue cliente distraído! 👥\n"
-            "`l!cafe` — Seu perfil de barista ⭐  |  `l!ranking cafe` — Top 10 🏆",
+            "`l!cafe` — Seu perfil de barista ⭐  |  `l!ranking cafe` — Top 10 🏆\n"
+            "`l!dar @user <qtd>` — Dê Lumicoins para outro barista 💸\n"
+            "`l!trocar @user <ing> [qtd] por <ing> [qtd]` — Proponha troca de ingredientes 🤝",
         )
 
 
