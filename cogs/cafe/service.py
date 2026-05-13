@@ -7,6 +7,7 @@ import time
 import unicodedata
 
 from .catalog import BEBIDAS, CD_ATENDER, CD_CLIENTE, CD_TRABALHAR, INGREDIENTES, NIVEIS, PREMIUM_BEBIDAS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA, VIP_CHANCE
+from .conquistas import verificar_conquistas
 from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
 from .narrative import CLIENTES, CLIENTES_VIP
 
@@ -95,6 +96,15 @@ def default_user() -> dict:
         "cd_atender": 0,
         "receitas_desbloqueadas": [],
         "upgrades": {"cafeteira": 0},
+        "conquistas": [],
+        "stats": {
+            "trabalhos": 0,
+            "bebidas_feitas": 0,
+            "clientes_atendidos": 0,
+            "vip_atendidos": 0,
+            "roubos": 0,
+            "bebidas_distintas": [],
+        },
     }
 
 
@@ -112,6 +122,16 @@ def normalizar_user_data(user_data: dict | None) -> dict:
     if not isinstance(user.get("upgrades"), dict):
         user["upgrades"] = {}
     user["upgrades"].setdefault("cafeteira", 0)
+    if not isinstance(user.get("conquistas"), list):
+        user["conquistas"] = []
+    user.setdefault("conquistas", [])
+    stats = user.setdefault("stats", {})
+    if not isinstance(stats, dict):
+        user["stats"] = {}
+        stats = user["stats"]
+    for campo in ("trabalhos", "bebidas_feitas", "clientes_atendidos", "vip_atendidos", "roubos"):
+        stats.setdefault(campo, 0)
+    stats.setdefault("bebidas_distintas", [])
     return user
 
 
@@ -251,7 +271,9 @@ def trabalhar(user_data: dict, agora: float | None = None, rng=random) -> dict:
     ganho = rng.randint(30, 90)
     user["lumicoins"] += ganho
     user["cd_trabalhar"] = time.time() if agora is None else agora
-    return {"ok": True, "user": user, "ganho": ganho}
+    user["stats"]["trabalhos"] += 1
+    novas = verificar_conquistas(user)
+    return {"ok": True, "user": user, "ganho": ganho, "conquistas_novas": novas}
 
 
 def comprar(user_data: dict, tokens: tuple[str, ...] | list[str]) -> dict:
@@ -307,7 +329,8 @@ def melhorar_cafeteira(user_data: dict, alvo: str = "cafeteira") -> dict:
         return {"ok": False, "reason": "saldo_insuficiente", "upgrade": prox, "saldo": user["lumicoins"]}
     user["lumicoins"] -= custo
     user.setdefault("upgrades", {})["cafeteira"] = prox["nivel"]
-    return {"ok": True, "user": user, "upgrade": prox, "custo": custo}
+    novas = verificar_conquistas(user)
+    return {"ok": True, "user": user, "upgrade": prox, "custo": custo, "conquistas_novas": novas}
 
 
 def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) -> dict:
@@ -347,6 +370,10 @@ def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) 
         bonus_dia_xp_total += bonus_dia_xp_unit
 
     user["xp"] += xp_total
+    user["stats"]["bebidas_feitas"] += quantidade
+    if bebida in BEBIDAS and bebida not in user["stats"]["bebidas_distintas"]:
+        user["stats"]["bebidas_distintas"].append(bebida)
+    novas = verificar_conquistas(user)
     return {
         "ok": True,
         "user": user,
@@ -356,6 +383,7 @@ def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) 
         "xp_ganho": xp_total,
         "bonus_dia_xp": bonus_dia_xp_total,
         "e_bebida_do_dia": bebida == bebida_dia,
+        "conquistas_novas": novas,
     }
 
 
@@ -380,7 +408,7 @@ def inventar(user_data: dict, ingredientes: tuple[str, ...] | list[str]) -> dict
         None,
     )
     if chave_acerto is None:
-        return {"ok": True, "user": user, "acertou": False, "tentativa": tentativa}
+        return {"ok": True, "user": user, "acertou": False, "tentativa": tentativa, "conquistas_novas": []}
 
     bebida_data = RECEITAS_SECRETAS[chave_acerto]
     ja_desbloqueada = chave_acerto in user.get("receitas_desbloqueadas", [])
@@ -391,6 +419,7 @@ def inventar(user_data: dict, ingredientes: tuple[str, ...] | list[str]) -> dict
     bonus_moedas = 100 if not ja_desbloqueada else 0
     user["xp"] += xp_ganho
     user["lumicoins"] += bonus_moedas
+    novas = verificar_conquistas(user)
     return {
         "ok": True,
         "user": user,
@@ -401,6 +430,7 @@ def inventar(user_data: dict, ingredientes: tuple[str, ...] | list[str]) -> dict
         "ja_desbloqueada": ja_desbloqueada,
         "xp_ganho": xp_ganho,
         "bonus_moedas": bonus_moedas,
+        "conquistas_novas": novas,
     }
 
 
@@ -555,10 +585,15 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
             "bebida": bebida_pedida,
             "bebida_data": bebida_data,
             "vip": eh_vip,
+            "conquistas_novas": [],
         }
 
     recompensa = _aplicar_recompensa_atendimento(user, bebida_pedida, vip=eh_vip, rng=rng)
     user.pop("cliente_pendente", None)
+    user["stats"]["clientes_atendidos"] += 1
+    if eh_vip:
+        user["stats"]["vip_atendidos"] += 1
+    novas = verificar_conquistas(user)
     return {
         "ok": True,
         "user": user,
@@ -567,6 +602,7 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
         "bebida": bebida_pedida,
         "bebida_data": bebida_data,
         "vip": eh_vip,
+        "conquistas_novas": novas,
         **recompensa,
     }
 
@@ -658,6 +694,11 @@ def roubar_atendimento(user_data: dict, bebida_raw: str, candidatos: list[tuple[
     cliente = next((c for c in all_clients if c["nome"] == pendente.get("cliente", "")), rng.choice(CLIENTES))
     recompensa = _aplicar_recompensa_atendimento(user, bebida, vip=eh_vip, rng=rng)
     alvo.pop("cliente_pendente", None)
+    user["stats"]["clientes_atendidos"] += 1
+    user["stats"]["roubos"] += 1
+    if eh_vip:
+        user["stats"]["vip_atendidos"] += 1
+    novas = verificar_conquistas(user)
     return {
         "ok": True,
         "user": user,
@@ -668,5 +709,6 @@ def roubar_atendimento(user_data: dict, bebida_raw: str, candidatos: list[tuple[
         "bebida": bebida,
         "bebida_data": bebida_data,
         "vip": eh_vip,
+        "conquistas_novas": novas,
         **recompensa,
     }
