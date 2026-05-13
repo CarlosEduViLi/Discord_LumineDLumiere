@@ -350,7 +350,7 @@ class Cafe(commands.Cog):
         embed.set_footer(text=f"Página {page}/{total_pages} • Lumine Café ☕")
         return embed
 
-    @commands.command(name="trabalhar", aliases=["work", "trab"], help="Trabalhe e ganhe Lumicoins! (cooldown 30min)")
+    @commands.command(name="trabalhar", aliases=["work", "trab", "trabalha", "labor"], help="Trabalhe e ganhe Lumicoins! (cooldown 30min)")
     @commands.guild_only()
     async def trabalhar(self, ctx: commands.Context):
         result = await self.repo.update_user(ctx.guild.id, ctx.author.id, regra_trabalhar)
@@ -378,7 +378,7 @@ class Cafe(commands.Cog):
         await ctx.send(embed=embed)
         await self._notificar_conquistas(ctx, result)
 
-    @commands.command(name="loja", aliases=["shop"], help="Ingredientes disponíveis para comprar.")
+    @commands.command(name="loja", aliases=["shop", "store", "mercado"], help="Ingredientes disponíveis para comprar.")
     @commands.guild_only()
     async def loja(self, ctx: commands.Context, page: int = 1):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
@@ -395,7 +395,7 @@ class Cafe(commands.Cog):
         await ctx.send(f"*{frase}*")
         view.message = await ctx.send(embed=self._build_loja_embed(user["lumicoins"], page, total), view=view)
 
-    @commands.command(name="cafeteira", aliases=["upgrades"], help="Veja e melhore sua cafeteira.")
+    @commands.command(name="cafeteira", aliases=["upgrades", "cafeteria", "machine"], help="Veja e melhore sua cafeteira.")
     @commands.guild_only()
     async def cafeteira(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
@@ -423,7 +423,7 @@ class Cafe(commands.Cog):
         embed.set_footer(text="Lumine Café ☕")
         await ctx.send(embed=embed)
 
-    @commands.command(name="melhorar", aliases=["upgrade"], help="Melhore sua cafeteira com Lumicoins.")
+    @commands.command(name="melhorar", aliases=["upgrade", "melhora", "improve"], help="Melhore sua cafeteira com Lumicoins.")
     @commands.guild_only()
     async def melhorar(self, ctx: commands.Context, *, alvo: str = "cafeteira"):
         result = await self.repo.update_user(ctx.guild.id, ctx.author.id, lambda user: melhorar_cafeteira(user, alvo))
@@ -460,7 +460,7 @@ class Cafe(commands.Cog):
         await ctx.send(embed=embed)
         await self._notificar_conquistas(ctx, result)
 
-    @commands.command(name="comprar", aliases=["buy"], help="Compre ingredientes. Ex: l!comprar grao 2 leite condensado 1")
+    @commands.command(name="comprar", aliases=["buy", "compra", "purchase"], help="Compre ingredientes. Ex: l!comprar grao 2 leite condensado 1")
     @commands.guild_only()
     async def comprar(self, ctx: commands.Context, *args: str):
         if not args:
@@ -501,7 +501,7 @@ class Cafe(commands.Cog):
         ).set_footer(text="Lumine Café ☕")
         await ctx.send(embed=embed)
 
-    @commands.command(name="cardapio", aliases=["menu"], help="Veja todas as bebidas disponíveis.")
+    @commands.command(name="cardapio", aliases=["menu", "cardápio", "drinks", "receitas"], help="Veja todas as bebidas disponíveis.")
     @commands.guild_only()
     async def cardapio(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
@@ -552,7 +552,7 @@ class Cafe(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name="preparar", aliases=["fazer", "brew"], help="Prepare uma bebida. Ex: l!preparar cappuccino 3")
+    @commands.command(name="preparar", aliases=["fazer", "brew", "prepara", "make"], help="Prepare uma bebida. Ex: l!preparar cappuccino 3")
     @commands.guild_only()
     async def preparar(self, ctx: commands.Context, *, bebida: str):
         # Parseia quantidade opcional no final: "cappuccino 3" → bebida="cappuccino", qtd=3
@@ -618,7 +618,7 @@ class Cafe(commands.Cog):
         await self._notificar_conquistas(ctx, result)
 
 
-    @commands.command(name="inventar", aliases=["experimentar", "misturar"], help="Misture ingredientes para descobrir uma receita secreta.")
+    @commands.command(name="inventar", aliases=["experimentar", "misturar", "invent", "mix", "experiment", "experimenta", "mistura"], help="Misture ingredientes para descobrir uma receita secreta.")
     @commands.guild_only()
     async def inventar(self, ctx: commands.Context, *ingredientes: str):
         if not ingredientes:
@@ -687,7 +687,7 @@ class Cafe(commands.Cog):
         await ctx.send(embed=embed)
         await self._notificar_conquistas(ctx, result)
 
-    @commands.command(name="estoque", aliases=["stock"], help="Veja suas bebidas prontas.")
+    @commands.command(name="estoque", aliases=["stock", "inventory", "inv", "inventario"], help="Veja suas bebidas prontas.")
     @commands.guild_only()
     async def estoque(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
@@ -711,7 +711,7 @@ class Cafe(commands.Cog):
             color=COR_CAFE,
         ).set_footer(text="Use l!vender <bebida> para vender!"))
 
-    @commands.command(name="vender", aliases=["sell"], help="Venda uma bebida do estoque. Ex: l!vender cappuccino")
+    @commands.command(name="vender", aliases=["sell", "venda", "vende"], help="Venda uma bebida do estoque. Ex: l!vender cappuccino")
     @commands.guild_only()
     async def vender(self, ctx: commands.Context, *, bebida: str):
         result = await self.repo.update_user(ctx.guild.id, ctx.author.id, lambda user: regra_vender(user, bebida))
@@ -735,7 +735,7 @@ class Cafe(commands.Cog):
             color=COR_OK,
         ).set_footer(text="Lumine Café ☕ • Ótimo negócio!"))
 
-    @commands.command(name="cafe", aliases=["barista"], help="Veja seu perfil de barista.")
+    @commands.command(name="cafe", aliases=["barista", "perfil", "profile", "café"], help="Veja seu perfil de barista.")
     @commands.guild_only()
     async def cafe_perfil(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
@@ -777,7 +777,7 @@ class Cafe(commands.Cog):
         embed.add_field(name="🧺 Bebidas", value=est_str, inline=False)
         await ctx.send(embed=embed.set_footer(text="Lumine Café ☕"))
 
-    @commands.command(name="ranking", aliases=["rank", "top"], help="Ranking da cafeteria: l!ranking cafe")
+    @commands.command(name="ranking", aliases=["rank", "top", "leaderboard", "placar"], help="Ranking da cafeteria: l!ranking cafe")
     @commands.guild_only()
     async def ranking(self, ctx: commands.Context, *, modo: str = "cafe"):
         if modo.strip().lower() not in ("cafe", "café"):
@@ -803,7 +803,7 @@ class Cafe(commands.Cog):
             color=COR_RANK,
         ).set_footer(text="Lumine Café ☕ • Top 10 baristas"))
 
-    @commands.command(name="atender", aliases=["cliente", "servir"], help="Atenda um cliente! (cooldown 1h)")
+    @commands.command(name="atender", aliases=["cliente", "servir", "serve", "atend"], help="Atenda um cliente! (cooldown 1h)")
     @commands.guild_only()
     async def atender(self, ctx: commands.Context, *, bebida_oferecida: str = None):
         if bebida_oferecida is None:
@@ -959,7 +959,7 @@ class Cafe(commands.Cog):
         await ctx.send(embed=embed)
         await self._notificar_conquistas(ctx, result)
 
-    @commands.command(name="dar", aliases=["give", "pagar"], help="Dê Lumicoins para outro barista. Ex: l!dar @user 100")
+    @commands.command(name="dar", aliases=["give", "pagar", "send", "transferir", "enviar"], help="Dê Lumicoins para outro barista. Ex: l!dar @user 100")
     @commands.guild_only()
     async def dar(self, ctx: commands.Context, membro: discord.Member, quantidade: int):
         if membro == ctx.author:
@@ -995,7 +995,7 @@ class Cafe(commands.Cog):
         embed.set_footer(text="Lumine Café ☕ • Que generoso~")
         await ctx.send(embed=embed)
 
-    @commands.command(name="trocar", aliases=["trade", "troca"], help="Proponha uma troca de ingredientes. Ex: l!trocar @user grão 5 por leite 3")
+    @commands.command(name="trocar", aliases=["trade", "troca", "exchange", "swap", "troque"], help="Proponha uma troca de ingredientes. Ex: l!trocar @user grão 5 por leite 3")
     @commands.guild_only()
     async def trocar(self, ctx: commands.Context, membro: discord.Member, *args: str):
         _USO = "❌ Formato: `l!trocar @user <ingrediente> [qtd] por <ingrediente> [qtd]`\nEx: `l!trocar @Carlos grão 5 por leite 3`"
@@ -1059,7 +1059,7 @@ class Cafe(commands.Cog):
             embed.set_footer(text="Lumine Café ☕ • Parabéns~! 💙")
             await ctx.send(embed=embed)
 
-    @commands.command(name="conquistas", aliases=["achievements", "badges"], help="Veja suas conquistas no café.")
+    @commands.command(name="conquistas", aliases=["achievements", "badges", "conquista", "achievement", "badge"], help="Veja suas conquistas no café.")
     @commands.guild_only()
     async def conquistas(self, ctx: commands.Context):
         user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
