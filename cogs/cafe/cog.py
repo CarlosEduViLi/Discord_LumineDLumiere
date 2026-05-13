@@ -214,6 +214,7 @@ class TradeView(discord.ui.View):
                 ),
                 color=COR_ERRO,
             )
+        self.stop()
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Recusar", emoji="❌", style=discord.ButtonStyle.danger)
@@ -231,6 +232,7 @@ class TradeView(discord.ui.View):
             ),
             color=COR_ERRO,
         )
+        self.stop()
         await interaction.response.edit_message(embed=embed, view=self)
 
 
