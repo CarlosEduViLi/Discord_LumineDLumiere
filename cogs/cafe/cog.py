@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands, tasks
 
 from .catalog import BEBIDAS, CD_CLIENTE, CD_ATENDER, CD_TRABALHAR, INGREDIENTES, LOJA_CATEGORIAS, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
+from .conquistas import CONQUISTAS
 from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
 from .images import fetch_anime_image
 from .narrative import CLIENTES, CLIENTES_VIP, FRASES_BEBIDA_DO_DIA, FRASES_CATEGORIA_DESCONTO, FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, FRASES_TRABALHAR_POR_HUMOR, escolher_pista_receita
@@ -373,6 +374,7 @@ class Cafe(commands.Cog):
             embed.add_field(name="🤫 Inspiração da Lumine", value=pista, inline=False)
         embed.set_footer(text=f"{nivel['emoji']} {nivel['titulo']} • próximo turno em 30min")
         await ctx.send(embed=embed)
+        await self._notificar_conquistas(ctx, result)
 
     @commands.command(name="loja", aliases=["shop"], help="Ingredientes disponíveis para comprar.")
     @commands.guild_only()
@@ -454,6 +456,7 @@ class Cafe(commands.Cog):
         embed.add_field(name="Novos bônus", value="\n".join(self._bonus_cafeteira_linhas(upgrade)), inline=False)
         embed.set_footer(text="Lumine Café ☕ • Upgrade instalado")
         await ctx.send(embed=embed)
+        await self._notificar_conquistas(ctx, result)
 
     @commands.command(name="comprar", aliases=["buy"], help="Compre ingredientes. Ex: l!comprar grao 2 leite condensado 1")
     @commands.guild_only()
@@ -610,6 +613,7 @@ class Cafe(commands.Cog):
             ),
             color=COR_OK,
         ).set_footer(text=f"{nivel['emoji']} {nivel['titulo']}"))
+        await self._notificar_conquistas(ctx, result)
 
 
     @commands.command(name="inventar", aliases=["experimentar", "misturar"], help="Misture ingredientes para descobrir uma receita secreta.")
@@ -679,6 +683,7 @@ class Cafe(commands.Cog):
         embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
         embed.set_footer(text=f"{nivel['emoji']} {nivel['titulo']} • Lumine Café ☕")
         await ctx.send(embed=embed)
+        await self._notificar_conquistas(ctx, result)
 
     @commands.command(name="estoque", aliases=["stock"], help="Veja suas bebidas prontas.")
     @commands.guild_only()
@@ -927,7 +932,9 @@ class Cafe(commands.Cog):
             img_url = await fetch_anime_image(cliente.get("image_tags", {}).get("feliz", "happy"))
             if img_url:
                 embed.set_image(url=img_url)
-            return await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
+            await self._notificar_conquistas(ctx, result)
+            return
 
         embed = discord.Embed(
             title=f"✨ {cliente['emoji']} {cliente['nome']} foi atendido!",
@@ -948,6 +955,7 @@ class Cafe(commands.Cog):
         if img_url:
             embed.set_image(url=img_url)
         await ctx.send(embed=embed)
+        await self._notificar_conquistas(ctx, result)
 
     @commands.command(name="dar", aliases=["give", "pagar"], help="Dê Lumicoins para outro barista. Ex: l!dar @user 100")
     @commands.guild_only()
@@ -1036,6 +1044,47 @@ class Cafe(commands.Cog):
         view = TradeView(self, ctx.author, membro, ctx.guild.id, key_a, qtd_a, key_b, qtd_b)
         view.message = await ctx.send(embed=embed, view=view)
 
+    async def _notificar_conquistas(self, ctx: commands.Context, result: dict) -> None:
+        for key in result.get("conquistas_novas", []):
+            conquista = CONQUISTAS.get(key)
+            if not conquista:
+                continue
+            embed = discord.Embed(
+                title="🏆 Conquista desbloqueada!",
+                description=f"{conquista['emoji']} **{conquista['nome']}**\n_{conquista['descricao']}_",
+                color=COR_RANK,
+            )
+            embed.set_footer(text="Lumine Café ☕ • Parabéns~! 💙")
+            await ctx.send(embed=embed)
+
+    @commands.command(name="conquistas", aliases=["achievements", "badges"], help="Veja suas conquistas no café.")
+    @commands.guild_only()
+    async def conquistas(self, ctx: commands.Context):
+        user = await self.repo.get_user(ctx.guild.id, ctx.author.id)
+        desbloqueadas = user.get("conquistas", [])
+        total = len(CONQUISTAS)
+
+        linhas_desbloq = []
+        linhas_bloq = []
+        for key, c in CONQUISTAS.items():
+            if key in desbloqueadas:
+                linhas_desbloq.append(f"✅ {c['emoji']} **{c['nome']}** — _{c['descricao']}_")
+            else:
+                linhas_bloq.append(f"🔒 {c['emoji']} {c['nome']}")
+
+        embed = discord.Embed(
+            title=f"🏆 Conquistas — {ctx.author.display_name}",
+            description=f"**{len(desbloqueadas)}/{total}** conquistas desbloqueadas\n​",
+            color=COR_RANK,
+        )
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
+        if linhas_desbloq:
+            embed.add_field(name="✅ Desbloqueadas", value="\n".join(linhas_desbloq), inline=False)
+        if linhas_bloq:
+            embed.add_field(name="🔒 Bloqueadas", value="\n".join(linhas_bloq), inline=False)
+        embed.set_footer(text="Lumine Café ☕")
+        await ctx.send(embed=embed)
+
     def help_meta(self) -> dict:
         return {
             "key": "cafe",
@@ -1062,7 +1111,8 @@ class Cafe(commands.Cog):
             "`l!atender [bebida]` — Atenda cliente seu ou fisgue cliente distraído! 👥\n"
             "`l!cafe` — Seu perfil de barista ⭐  |  `l!ranking cafe` — Top 10 🏆\n"
             "`l!dar @user <qtd>` — Dê Lumicoins para outro barista 💸\n"
-            "`l!trocar @user <ing> [qtd] por <ing> [qtd]` — Proponha troca de ingredientes 🤝",
+            "`l!trocar @user <ing> [qtd] por <ing> [qtd]` — Proponha troca de ingredientes 🤝\n"
+            "`l!conquistas` — Veja suas conquistas 🏆",
         )
 
 
