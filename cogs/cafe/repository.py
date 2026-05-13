@@ -6,7 +6,7 @@ from collections.abc import Callable
 from utils.paths import CAFE_DATA_PATH
 from utils.storage import JsonStore
 
-from .service import normalizar_user_data, roubar_atendimento, servir_atendimento
+from .service import dar_moedas as _dar_moedas, executar_troca as _executar_troca, normalizar_user_data, roubar_atendimento, servir_atendimento
 
 
 class CafeRepository:
@@ -102,3 +102,32 @@ class CafeRepository:
             if isinstance(user, dict):
                 user.pop("cliente_pendente", None)
         await self.store.update(mutator)
+
+    async def dar_moedas(self, guild_id: int, sender_id: int, receiver_id: int, quantidade: int) -> dict:
+        def mutator(data: dict) -> dict:
+            gid = str(guild_id)
+            data.setdefault(gid, {})
+            sender = copy.deepcopy(self._ensure_user(data, guild_id, sender_id))
+            receiver = copy.deepcopy(self._ensure_user(data, guild_id, receiver_id))
+            resultado = _dar_moedas(sender, receiver, quantidade)
+            if resultado["ok"]:
+                data[gid][str(sender_id)] = normalizar_user_data(resultado["user_sender"])
+                data[gid][str(receiver_id)] = normalizar_user_data(resultado["user_receiver"])
+            return resultado
+        return await self.store.update(mutator)
+
+    async def trocar_ingredientes(
+        self, guild_id: int, a_id: int, b_id: int,
+        ing_a: str, qtd_a: int, ing_b: str, qtd_b: int,
+    ) -> dict:
+        def mutator(data: dict) -> dict:
+            gid = str(guild_id)
+            data.setdefault(gid, {})
+            user_a = copy.deepcopy(self._ensure_user(data, guild_id, a_id))
+            user_b = copy.deepcopy(self._ensure_user(data, guild_id, b_id))
+            resultado = _executar_troca(user_a, user_b, ing_a, qtd_a, ing_b, qtd_b)
+            if resultado["ok"]:
+                data[gid][str(a_id)] = normalizar_user_data(resultado["user_a"])
+                data[gid][str(b_id)] = normalizar_user_data(resultado["user_b"])
+            return resultado
+        return await self.store.update(mutator)
