@@ -43,6 +43,12 @@ LAVALINK_JAR = os.path.join(BIN_DIR, "Lavalink.jar")
 
 
 def start_lavalink() -> subprocess.Popen | None:
+    # Se LAVALINK_MANAGED=false, não tenta iniciar o servidor local.
+    # Útil quando se usa um nó Lavalink externo/público (ex: deploy no Railway).
+    if os.getenv("LAVALINK_MANAGED", "true").lower() == "false":
+        print("Lavalink gerenciado desativado (LAVALINK_MANAGED=false). Usando nó externo.")
+        return None
+
     if is_port_open("127.0.0.1", 2333):
         print("Servidor Lavalink local ja esta rodando.")
         return None

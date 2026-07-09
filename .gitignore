@@ -15,3 +15,4 @@ bin/Lavalink.jar
 bin/plugins/
 # application.yml contém tokens OAuth do YouTube e chaves do Spotify — NUNCA suba!
 bin/application.yml
+

@@ -21,15 +21,11 @@ spring:
       enabled: false
 
 lavalink:
-  plugins:
-    # Plugin oficial do YouTube (substitui o source nativo quebrado)
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.0"
-      repository: "https://maven.lavalink.dev/releases"
-    # Plugin LavaSrc — suporte a Spotify, Apple Music, Deezer, etc.
-    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.1"
-      repository: "https://maven.lavalink.dev/releases"
-      snapshot: false
-
+  # Os plugins devem ficar em bin/plugins:
+  #   youtube-plugin-1.18.0.jar
+  #   lavasrc-plugin-4.8.1.jar
+  # Deixe lavalink.plugins sem dependencias para evitar consultas HTTPS ao Maven
+  # durante o boot. Se quiser download automatico, configure este bloco de novo.
   server:
     password: "${LAVALINK_PASSWORD}"
     sources:

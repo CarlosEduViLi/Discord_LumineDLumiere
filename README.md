@@ -247,7 +247,7 @@ Discord_LumineDLumiere/
     ├── application.yml       # Configuração do servidor Lavalink (não sobe pro Git!)
     ├── application.yml.example
     ├── jre/                  # Java 17 portátil (não está no repositório)
-    └── plugins/              # Plugins do Lavalink baixados automaticamente
+    └── plugins/              # Plugins do Lavalink carregados localmente
 ```
 
 ---
@@ -289,6 +289,7 @@ Cada cog expõe:
 - Python 3.11+
 - Java 17 (portátil em `bin/jre/` **ou** instalado no sistema)
 - `Lavalink.jar` em `bin/` (baixe em [github.com/lavalink-devs/Lavalink/releases](https://github.com/lavalink-devs/Lavalink/releases))
+- `youtube-plugin-1.18.0.jar` e `lavasrc-plugin-4.8.1.jar` em `bin/plugins/`
 
 ### Instalação
 
@@ -352,7 +353,7 @@ Os seguintes arquivos **nunca sobem** para o repositório (`.gitignore`):
 | `bin/application.yml` | Tokens OAuth do YouTube e chaves do Spotify |
 | `bin/Lavalink.jar` | Binário pesado (~96 MB) |
 | `bin/jre/` | Java portátil (~200 MB) |
-| `bin/plugins/` | Plugins do Lavalink baixados automaticamente |
+| `bin/plugins/` | Plugins do Lavalink carregados localmente |
 | `data/*.json` | Dados de usuários (privacidade) |
 | `venv/` | Ambiente virtual Python |
 

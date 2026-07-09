@@ -185,7 +185,7 @@ class Music(commands.Cog):
     async def _connect_nodes(self):
         await self.bot.wait_until_ready()
         node = wavelink.Node(
-                uri="http://127.0.0.1:2333",
+                uri=os.getenv("LAVALINK_URI", "http://127.0.0.1:2333"),
                 password=os.getenv("LAVALINK_PASSWORD", "youshallnotpass"),
             )
         for attempt in range(1, 16):
