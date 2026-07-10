@@ -320,7 +320,9 @@ class Music(commands.Cog):
         mode = player.queue.mode
         if _MOOD_MUSIC_OK:
             humor = _get_humor_atual()
-            prefix = f"{humor.emoji} {humor.nome} • " if humor.id != "tarde" else ""
+            emojis = {"manha": "🌅", "tarde": "☀️", "noite": "🌙", "madrugada": "🌌"}
+            nomes = {"manha": "Manhã", "tarde": "Tarde", "noite": "Noite", "madrugada": "Madrugada"}
+            prefix = f"{emojis.get(humor.humor, '✨')} {nomes.get(humor.humor, 'Lumine')} • " if humor.humor != "tarde" else ""
         else:
             prefix = ""
         if mode == wavelink.QueueMode.loop:
