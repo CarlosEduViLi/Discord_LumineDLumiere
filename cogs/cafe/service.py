@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import copy
-import random
 import math
+import random
 import re
 import time
 import unicodedata
@@ -354,7 +354,7 @@ def melhorar_cafeteira(user_data: dict, alvo: str = "cafeteira") -> dict:
 def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, agora: float | None = None, rng=random) -> dict:
     user = _clone_user(user_data)
     agora_ts = time.time() if agora is None else agora
-    
+
     cd = cooldown_restante(user.get("cd_preparar", 0), CD_PREPARAR, agora_ts)
     if cd:
         return {"ok": False, "reason": "cooldown", "cooldown": cd}
@@ -514,14 +514,14 @@ def _aplicar_recompensa_atendimento(user: dict, bebida: str, bebida_data: dict, 
     else:
         gorjeta_base = rng.randint(20, 60)
         bonus_xp = rng.randint(5, 15)
-        
+
     cafeteira = get_cafeteira_info(user)
-    
+
     gorjeta = aplicar_bonus_percentual(gorjeta_base, cafeteira["bonus_atendimento"])
     valor_venda = aplicar_bonus_percentual(bebida_data.get("preco_venda", 0), cafeteira.get("bonus_venda", 0))
-    
+
     bonus_moedas = valor_venda + gorjeta
-    
+
     user["estoque"][bebida] -= 1
     if user["estoque"][bebida] == 0:
         del user["estoque"][bebida]
