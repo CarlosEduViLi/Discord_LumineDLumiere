@@ -251,7 +251,7 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, payload: wavelink.NodeReadyEventPayload):
-        print(f"  ✅ Node {payload.node.identifier} está pronto!")
+        print(f"  [OK] Node {payload.node.identifier} está pronto!")
 
     @commands.Cog.listener()
     async def on_voice_state_update(
@@ -320,9 +320,7 @@ class Music(commands.Cog):
         mode = player.queue.mode
         if _MOOD_MUSIC_OK:
             humor = _get_humor_atual()
-            emojis = {"manha": "🌅", "tarde": "☀️", "noite": "🌙", "madrugada": "🌌"}
-            nomes = {"manha": "Manhã", "tarde": "Tarde", "noite": "Noite", "madrugada": "Madrugada"}
-            prefix = f"{emojis.get(humor.humor, '✨')} {nomes.get(humor.humor, 'Lumine')} • " if humor.humor != "tarde" else ""
+            prefix = f"{humor.emoji} {humor.nome} • " if humor.id != "tarde" else ""
         else:
             prefix = ""
         if mode == wavelink.QueueMode.loop:

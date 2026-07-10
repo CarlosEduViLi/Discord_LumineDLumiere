@@ -51,14 +51,14 @@ BEBIDAS: dict[str, dict] = {
         "nome": "Latte",
         "emoji": "🥤",
         "receita": {"grao": 1, "leite": 2},
-        "preco_venda": 40,
+        "preco_venda": 45,
         "xp": 12,
     },
     "cafe_gelado": {
         "nome": "Café Gelado",
         "emoji": "🧊",
         "receita": {"grao": 1, "gelo": 2},
-        "preco_venda": 45,
+        "preco_venda": 30,
         "xp": 14,
     },
     "frappuccino": {
@@ -79,14 +79,14 @@ BEBIDAS: dict[str, dict] = {
         "nome": "Matcha Latte",
         "emoji": "🍵",
         "receita": {"matcha": 1, "leite": 2},
-        "preco_venda": 60,
+        "preco_venda": 75,
         "xp": 17,
     },
     "mocha": {
         "nome": "Mocha",
         "emoji": "🍫",
         "receita": {"grao": 1, "leite": 1, "chocolate": 1},
-        "preco_venda": 60,
+        "preco_venda": 65,
         "xp": 17,
     },
 }
@@ -96,21 +96,21 @@ RECEITAS_SECRETAS: dict[str, dict] = {
         "nome": "Café das Arábias",
         "emoji": "🧞‍♂️",
         "receita": {"grao": 1, "canela": 1, "pimenta": 1},
-        "preco_venda": 120,
+        "preco_venda": 150,
         "xp": 50,
     },
     "mocha_inverno": {
         "nome": "Mocha Branco de Inverno",
         "emoji": "❄️",
         "receita": {"grao": 1, "leite": 1, "baunilha": 1, "chantilly": 1},
-        "preco_venda": 150,
+        "preco_venda": 160,
         "xp": 60,
     },
     "cold_brew_limao": {
         "nome": "Cold Brew de Limão",
         "emoji": "🍋",
         "receita": {"grao": 1, "agua": 1, "gelo": 1, "limao": 1},
-        "preco_venda": 110,
+        "preco_venda": 100,
         "xp": 45,
     },
     "cafe_sal_marinho": {
@@ -131,29 +131,29 @@ RECEITAS_SECRETAS: dict[str, dict] = {
         "nome": "Latte de Flor de Cerejeira",
         "emoji": "🌸",
         "receita": {"grao": 1, "leite": 1, "sakura": 1, "mel": 1},
-        "preco_venda": 200,
+        "preco_venda": 250,
         "xp": 80,
     },
     "choconta": {
         "nome": "Choconta",
         "emoji": "🌿",
         "receita": {"chocolate": 1, "leite": 1, "menta": 1},
-        "preco_venda": 140,
+        "preco_venda": 130,
         "xp": 55,
     },
     "gingerbread_latte": {
         "nome": "Gingerbread Latte",
         "emoji": "🍪",
         "receita": {"grao": 1, "leite": 1, "gengibre": 1, "canela": 1},
-        "preco_venda": 150,
+        "preco_venda": 140,
         "xp": 60,
     },
     "cocoa_espresso": {
         "nome": "Cocoa Espresso",
         "emoji": "🥥",
         "receita": {"grao": 1, "leite": 1, "coco": 1, "chocolate": 1},
-        "preco_venda": 160,
-        "xp": 65,
+        "preco_venda": 170,
+        "xp": 60,
     },
     "lagrimas_anjo": {
         "nome": "Lágrimas de Anjo",
@@ -261,6 +261,7 @@ UPGRADES_CAFETEIRA: list[dict] = [
 
 CD_TRABALHAR = 30 * 60
 CD_ATENDER = 60 * 60
+CD_PREPARAR = 5 * 60         # tempo até a cafeteira esfriar (segundos)
 CD_CLIENTE = 5 * 60          # tempo até o cliente desistir e ir embora (segundos)
 
 VIP_CHANCE = 15              # % de chance de aparecer um cliente VIP

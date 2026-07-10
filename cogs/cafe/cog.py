@@ -438,6 +438,7 @@ class Cafe(commands.Cog):
             description=f"Nível atual: **{nivel} — {atual['nome']}**\nSaldo: **{user['lumicoins']} 🪙**",
             color=COR_CAFE,
         )
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
         embed.add_field(name="Bônus ativos", value="\n".join(self._bonus_cafeteira_linhas(atual)), inline=False)
         if nivel + 1 < len(UPGRADES_CAFETEIRA):
             prox = UPGRADES_CAFETEIRA[nivel + 1]
@@ -487,6 +488,7 @@ class Cafe(commands.Cog):
             description=f"Agora você tem a **{upgrade['nome']}**.\nGastou **{result['custo']} 🪙** — saldo: **{user['lumicoins']} 🪙**",
             color=COR_OK,
         )
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
         embed.add_field(name="Novos bônus", value="\n".join(self._bonus_cafeteira_linhas(upgrade)), inline=False)
         embed.set_footer(text="Lumine Café ☕ • Upgrade instalado")
         await ctx.send(embed=embed)
@@ -599,6 +601,9 @@ class Cafe(commands.Cog):
             lambda user: regra_preparar(user, bebida, quantidade),
         )
         if not result["ok"]:
+            if result["reason"] == "cooldown":
+                tempo = formatar_tempo(result["cooldown"])
+                return await ctx.send(f"⏳ **Calma lá!** A cafeteira está esfriando. Espere mais **{tempo}** para preparar bebidas!")
             if result["reason"] == "bebida_invalida":
                 opcoes = ", ".join(f"`{opcao}`" for opcao in result["opcoes"])
                 return await ctx.send(f"❌ Bebida não encontrada! Opções: {opcoes}\nVeja o `l!cardapio`!")
