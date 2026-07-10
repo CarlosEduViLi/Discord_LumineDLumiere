@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import random
+import math
 import re
 import time
 import unicodedata
@@ -10,6 +11,7 @@ from .catalog import (
     BEBIDAS,
     CD_ATENDER,
     CD_CLIENTE,
+    CD_PREPARAR,
     CD_TRABALHAR,
     INGREDIENTES,
     NIVEIS,
@@ -175,7 +177,7 @@ def get_cafeteira_info(user_data: dict) -> dict:
 def aplicar_bonus_percentual(valor: int, percentual: int) -> int:
     if percentual <= 0:
         return valor
-    return valor * (100 + percentual) // 100
+    return valor + math.ceil((valor * percentual) / 100)
 
 
 def cooldown_restante(ts_ultimo: float, duracao: float, agora: float | None = None) -> float:
@@ -349,8 +351,14 @@ def melhorar_cafeteira(user_data: dict, alvo: str = "cafeteira") -> dict:
     return {"ok": True, "user": user, "upgrade": prox, "custo": custo, "conquistas_novas": novas}
 
 
-def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) -> dict:
+def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, agora: float | None = None, rng=random) -> dict:
     user = _clone_user(user_data)
+    agora_ts = time.time() if agora is None else agora
+    
+    cd = cooldown_restante(user.get("cd_preparar", 0), CD_PREPARAR, agora_ts)
+    if cd:
+        return {"ok": False, "reason": "cooldown", "cooldown": cd}
+
     bebida = normalizar_bebida(bebida_raw)
     catalogo = _catalogo_do_usuario(user)
     if bebida not in catalogo:
@@ -389,6 +397,7 @@ def preparar(user_data: dict, bebida_raw: str, quantidade: int = 1, rng=random) 
     user["stats"]["bebidas_feitas"] += quantidade
     if bebida in BEBIDAS and bebida not in user["stats"]["bebidas_distintas"]:
         user["stats"]["bebidas_distintas"].append(bebida)
+    user["cd_preparar"] = agora_ts
     novas = verificar_conquistas(user)
     return {
         "ok": True,
@@ -498,22 +507,29 @@ def is_client_expired(user_data: dict, agora: float | None = None) -> bool:
     return (agora - pendente.get("ts", agora)) >= CD_CLIENTE
 
 
-def _aplicar_recompensa_atendimento(user: dict, bebida: str, vip: bool = False, rng=random) -> dict:
+def _aplicar_recompensa_atendimento(user: dict, bebida: str, bebida_data: dict, vip: bool = False, rng=random) -> dict:
     if vip:
-        bonus_base = rng.randint(80, 220)
+        gorjeta_base = rng.randint(80, 220)
         bonus_xp = rng.randint(15, 40)
     else:
-        bonus_base = rng.randint(20, 60)
+        gorjeta_base = rng.randint(20, 60)
         bonus_xp = rng.randint(5, 15)
+        
     cafeteira = get_cafeteira_info(user)
-    bonus_moedas = aplicar_bonus_percentual(bonus_base, cafeteira["bonus_atendimento"])
+    
+    gorjeta = aplicar_bonus_percentual(gorjeta_base, cafeteira["bonus_atendimento"])
+    valor_venda = aplicar_bonus_percentual(bebida_data.get("preco_venda", 0), cafeteira.get("bonus_venda", 0))
+    
+    bonus_moedas = valor_venda + gorjeta
+    
     user["estoque"][bebida] -= 1
     if user["estoque"][bebida] == 0:
         del user["estoque"][bebida]
     user["lumicoins"] += bonus_moedas
     user["xp"] += bonus_xp
     return {
-        "bonus_base": bonus_base,
+        "bonus_base": gorjeta_base,
+        "valor_venda": valor_venda,
         "bonus_moedas": bonus_moedas,
         "bonus_xp": bonus_xp,
     }
@@ -604,7 +620,7 @@ def servir_atendimento(user_data: dict, bebida_raw: str, rng=random) -> dict:
             "conquistas_novas": [],
         }
 
-    recompensa = _aplicar_recompensa_atendimento(user, bebida_pedida, vip=eh_vip, rng=rng)
+    recompensa = _aplicar_recompensa_atendimento(user, bebida_pedida, bebida_data, vip=eh_vip, rng=rng)
     user.pop("cliente_pendente", None)
     user["stats"]["clientes_atendidos"] += 1
     if eh_vip:
@@ -708,7 +724,7 @@ def roubar_atendimento(user_data: dict, bebida_raw: str, candidatos: list[tuple[
     eh_vip = pendente.get("vip", False)
     all_clients = CLIENTES + CLIENTES_VIP
     cliente = next((c for c in all_clients if c["nome"] == pendente.get("cliente", "")), rng.choice(CLIENTES))
-    recompensa = _aplicar_recompensa_atendimento(user, bebida, vip=eh_vip, rng=rng)
+    recompensa = _aplicar_recompensa_atendimento(user, bebida, bebida_data, vip=eh_vip, rng=rng)
     alvo.pop("cliente_pendente", None)
     user["stats"]["clientes_atendidos"] += 1
     user["stats"]["roubos"] += 1

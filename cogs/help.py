@@ -63,10 +63,8 @@ class Help(commands.Cog):
     def _embed_cardapio(self) -> discord.Embed:
         if _MOOD_HELP_OK:
             humor = _get_humor_atual()
-            titulo = _saudacao_do_humor()
-            emojis = {"manha": "🌅", "tarde": "☀️", "noite": "🌙", "madrugada": "🌌"}
-            nomes = {"manha": "Manhã", "tarde": "Tarde", "noite": "Noite", "madrugada": "Madrugada"}
-            footer = f"{emojis.get(humor.humor, '✨')} {nomes.get(humor.humor, 'Lumine')} • Em que posso te servir hoje? 💙 — Lumine D'Lumière"
+            titulo = f"{humor.emoji} {_saudacao_do_humor()}"
+            footer = f"{humor.emoji} {humor.nome} • Em que posso te servir hoje? 💙 — Lumine D'Lumière"
         else:
             titulo = "✨ Olá! Sou a Lumine, sua maid~ 💙"
             footer = "Em que posso te servir hoje? 💙 — Lumine D'Lumière"
