@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle erros
+    "W",   # pycodestyle avisos
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # linha longa — controlado pelo line-length acima
+]
+exclude = [
+    "venv",
+    ".venv",
+    "__pycache__",
+    "data",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--tb=short -q"

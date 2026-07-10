@@ -8,12 +8,17 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
-
 T = TypeVar("T")
 
 
 class JsonStore:
-    """Small JSON store with per-file async locking and atomic writes."""
+    """Small JSON store with per-file async locking and atomic writes.
+
+    I/O de disco é executado via ``asyncio.to_thread`` para não bloquear
+    o event loop em leituras/gravações de arquivos maiores ou discos lentos.
+    O ``asyncio.Lock`` é adquirido *antes* de entrar na thread para
+    garantir serialização das operações.
+    """
 
     def __init__(self, path: str | Path):
         self.path = Path(path)
@@ -39,15 +44,17 @@ class JsonStore:
 
     async def read(self) -> dict:
         async with self._lock:
-            return copy.deepcopy(self._load_unlocked())
+            return copy.deepcopy(await asyncio.to_thread(self._load_unlocked))
 
     async def replace(self, data: dict) -> None:
+        # Captura o valor agora (antes da thread) para evitar mutação externa
+        snapshot = copy.deepcopy(data)
         async with self._lock:
-            self._save_unlocked(data)
+            await asyncio.to_thread(self._save_unlocked, snapshot)
 
     async def update(self, mutator: Callable[[dict], T]) -> T:
         async with self._lock:
-            data = self._load_unlocked()
+            data = await asyncio.to_thread(self._load_unlocked)
             result = mutator(data)
-            self._save_unlocked(data)
+            await asyncio.to_thread(self._save_unlocked, data)
             return result

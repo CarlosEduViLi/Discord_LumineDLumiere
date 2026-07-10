@@ -1,4 +1,3 @@
-import asyncio
 import re
 
 import discord
@@ -137,7 +136,7 @@ class Playlists(commands.Cog):
 
         try:
             reply = await self.bot.wait_for("message", check=check, timeout=30.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await ctx.send("⏰ Tempo esgotado! Não fiz nada~ 💙")
             return False
         if reply.content.strip().lower() in _SIM:

@@ -6,11 +6,37 @@ import time as _time
 import discord
 from discord.ext import commands, tasks
 
-from .catalog import BEBIDAS, CD_CLIENTE, CD_ATENDER, CD_TRABALHAR, INGREDIENTES, LOJA_CATEGORIAS, NIVEIS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA
+from .catalog import (
+    BEBIDAS,
+    CD_ATENDER,
+    CD_CLIENTE,
+    CD_TRABALHAR,
+    INGREDIENTES,
+    LOJA_CATEGORIAS,
+    NIVEIS,
+    RECEITAS_SECRETAS,
+    UPGRADES_CAFETEIRA,
+)
 from .conquistas import CONQUISTAS
-from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
+from .daily import (
+    get_bebida_do_dia,
+    get_bonus_bebida_venda_pct,
+    get_bonus_bebida_xp_pct,
+    get_categoria_desconto,
+    get_desconto_pct,
+)
 from .images import fetch_anime_image
-from .narrative import CLIENTES, CLIENTES_VIP, FRASES_BEBIDA_DO_DIA, FRASES_CATEGORIA_DESCONTO, FRASES_INVENTAR_ACERTO, FRASES_INVENTAR_ERRO, FRASES_TRABALHAR, FRASES_TRABALHAR_POR_HUMOR, escolher_pista_receita
+from .narrative import (
+    CLIENTES,
+    CLIENTES_VIP,
+    FRASES_BEBIDA_DO_DIA,
+    FRASES_CATEGORIA_DESCONTO,
+    FRASES_INVENTAR_ACERTO,
+    FRASES_INVENTAR_ERRO,
+    FRASES_TRABALHAR,
+    FRASES_TRABALHAR_POR_HUMOR,
+    escolher_pista_receita,
+)
 
 try:
     from utils.mood import frase_com_humor as _frase_humor
@@ -20,23 +46,29 @@ except Exception:
 from .repository import CafeRepository
 from .service import (
     comprar as regra_comprar,
+)
+from .service import (
     cooldown_restante,
-    dar_moedas as regra_dar,
-    executar_troca as regra_trocar,
     formatar_tempo,
     get_cafeteira_info,
     get_cafeteira_nivel,
     get_nivel,
     iniciar_atendimento,
-    inventar as regra_inventar,
-    is_client_expired,
     melhorar_cafeteira,
     normalizar_ingrediente,
+)
+from .service import (
+    inventar as regra_inventar,
+)
+from .service import (
     preparar as regra_preparar,
+)
+from .service import (
     trabalhar as regra_trabalhar,
+)
+from .service import (
     vender as regra_vender,
 )
-
 
 COR_CAFE = discord.Color.from_rgb(139, 90, 43)
 COR_OK = discord.Color.from_rgb(107, 191, 139)
@@ -67,7 +99,7 @@ def _cooldown_status(restante: float) -> str:
 
 
 class LojaView(discord.ui.View):
-    def __init__(self, cog: "Cafe", author: discord.abc.User, page: int):
+    def __init__(self, cog: Cafe, author: discord.abc.User, page: int):
         super().__init__(timeout=60)
         self.cog = cog
         self.author = author
@@ -128,7 +160,7 @@ def _parse_trade_side(tokens: list[str]) -> tuple[str | None, int, str]:
 class TradeView(discord.ui.View):
     def __init__(
         self,
-        cog: "Cafe",
+        cog: Cafe,
         sender: discord.abc.User,
         receiver: discord.abc.User,
         guild_id: int,
@@ -573,7 +605,6 @@ class Cafe(commands.Cog):
             bebida_data = BEBIDAS.get(result.get("bebida")) or RECEITAS_SECRETAS.get(result.get("bebida"))
             title = "😢 Faltam ingredientes!"
             if bebida_data:
-                qtd_label = f" ×{quantidade}" if quantidade > 1 else ""
                 title = f"😢 Faltam ingredientes para {quantidade}× {bebida_data['emoji']} {bebida_data['nome']}!" if quantidade > 1 else f"😢 Faltam ingredientes para {bebida_data['emoji']} {bebida_data['nome']}!"
             return await ctx.send(embed=discord.Embed(
                 title=title,

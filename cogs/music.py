@@ -8,7 +8,8 @@ import wavelink
 from discord.ext import commands
 
 try:
-    from utils.mood import get_humor_atual as _get_humor_atual, frase_com_humor as _frase_humor
+    from utils.mood import frase_com_humor as _frase_humor
+    from utils.mood import get_humor_atual as _get_humor_atual
     _MOOD_MUSIC_OK = True
 except Exception:
     _MOOD_MUSIC_OK = False
@@ -237,7 +238,6 @@ class Music(commands.Cog):
 
     async def _pause_watcher(self, player: wavelink.Player, pauser_id: int):
         """Pinga quem pausou a cada 10 min em loop, sem nunca sair da call por causa de pause."""
-        guild_id = player.guild.id
         mention = f"<@{pauser_id}>"
         ch = getattr(player, "reply_channel", None)
         while True:
@@ -432,7 +432,7 @@ class Music(commands.Cog):
 
         try:
             reply = await self.bot.wait_for("message", check=check, timeout=30.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await ctx.send("⏰ Tempo esgotado! Não fiz nada~ 💙")
             return False
         if reply.content.strip().lower() in _SIM:
@@ -728,8 +728,8 @@ class Music(commands.Cog):
                 return
             player.queue.reset()
             await ctx.send(
-                f"🧹 Pronto, limpei toda a filinha! 💙\n"
-                f"*Da próxima vez, `l!clear` resolve isso numa tacada só~ ✨*"
+                "🧹 Pronto, limpei toda a filinha! 💙\n"
+                "*Da próxima vez, `l!clear` resolve isso numa tacada só~ ✨*"
             )
             return
 

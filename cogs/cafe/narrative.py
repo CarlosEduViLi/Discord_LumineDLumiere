@@ -4,7 +4,6 @@ import random
 
 from .catalog import RECEITAS_SECRETAS
 
-
 PISTAS_RECEITAS_SECRETAS: dict[str, dict[str, str]] = {
     "cafe_arabias": {
         "tema": "Tem bebida que parece cruzar um mercado antigo, quente e perfumado.",

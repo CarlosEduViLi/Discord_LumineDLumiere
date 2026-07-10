@@ -1,0 +1,10 @@
+# Dependencias de desenvolvimento (nao vao para producao)
+# Instale com: pip install -r requirements-dev.txt
+
+# Testes
+pytest==8.3.5
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# Linter e formatador
+ruff==0.9.10

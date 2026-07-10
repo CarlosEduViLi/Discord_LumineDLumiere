@@ -14,7 +14,6 @@ import asyncio
 import logging
 import random
 import time
-from typing import Optional
 
 import aiohttp
 
@@ -86,7 +85,7 @@ async def _try_nekos_best(categoria: str, qtd: int) -> list[str]:
                 data = await resp.json()
                 # Formato: {"results": [{"url": "..."}, ...]}
                 return [r["url"] for r in data.get("results", []) if r.get("url")]
-    except (asyncio.TimeoutError, aiohttp.ClientError, ValueError, KeyError) as e:
+    except (TimeoutError, aiohttp.ClientError, ValueError, KeyError) as e:
         log.warning("falha em nekos.best (%s): %s", categoria, e)
         return []
 
@@ -102,14 +101,14 @@ async def _try_waifu_pics(categoria: str, qtd: int) -> list[str]:
         return []
     url = f"https://api.waifu.pics/sfw/{endpoint}"
 
-    async def _one(session: aiohttp.ClientSession) -> Optional[str]:
+    async def _one(session: aiohttp.ClientSession) -> str | None:
         try:
             async with session.get(url) as resp:
                 if resp.status != 200:
                     return None
                 data = await resp.json()
                 return data.get("url")
-        except (asyncio.TimeoutError, aiohttp.ClientError, ValueError):
+        except (TimeoutError, aiohttp.ClientError, ValueError):
             return None
 
     try:
@@ -117,7 +116,7 @@ async def _try_waifu_pics(categoria: str, qtd: int) -> list[str]:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             results = await asyncio.gather(*[_one(session) for _ in range(qtd)])
         return list({u for u in results if u})  # dedup
-    except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+    except (TimeoutError, aiohttp.ClientError) as e:
         log.warning("falha em waifu.pics (%s): %s", categoria, e)
         return []
 
@@ -125,7 +124,7 @@ async def _try_waifu_pics(categoria: str, qtd: int) -> list[str]:
 # ─────────────────────────────────────────────
 #  API PÚBLICA
 # ─────────────────────────────────────────────
-async def fetch_anime_image(categoria: str) -> Optional[str]:
+async def fetch_anime_image(categoria: str) -> str | None:
     """Retorna URL de uma imagem de anime para a categoria ou None se falhar.
 
     Estratégia:

@@ -6,11 +6,27 @@ import re
 import time
 import unicodedata
 
-from .catalog import BEBIDAS, CD_ATENDER, CD_CLIENTE, CD_TRABALHAR, INGREDIENTES, NIVEIS, PREMIUM_BEBIDAS, RECEITAS_SECRETAS, UPGRADES_CAFETEIRA, VIP_CHANCE
+from .catalog import (
+    BEBIDAS,
+    CD_ATENDER,
+    CD_CLIENTE,
+    CD_TRABALHAR,
+    INGREDIENTES,
+    NIVEIS,
+    PREMIUM_BEBIDAS,
+    RECEITAS_SECRETAS,
+    UPGRADES_CAFETEIRA,
+    VIP_CHANCE,
+)
 from .conquistas import verificar_conquistas
-from .daily import get_bebida_do_dia, get_bonus_bebida_venda_pct, get_bonus_bebida_xp_pct, get_categoria_desconto, get_desconto_pct
+from .daily import (
+    get_bebida_do_dia,
+    get_bonus_bebida_venda_pct,
+    get_bonus_bebida_xp_pct,
+    get_categoria_desconto,
+    get_desconto_pct,
+)
 from .narrative import CLIENTES, CLIENTES_VIP
-
 
 _SPACE_RE = re.compile(r"[\s\-]+")
 _CLEAN_RE = re.compile(r"[^\w\s\-]")

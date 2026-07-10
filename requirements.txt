@@ -1,7 +1,13 @@
 # Bot Discord — LumineDLumiere
 # Dependências principais
-discord.py[voice]
-python-dotenv
+discord.py[voice]==2.5.2
+python-dotenv==1.1.1
 
 # Wrapper para o Lavalink
-wavelink
+wavelink==3.4.1
+
+# HTTP client (dependência direta — importado em cogs e utils)
+aiohttp==3.12.13
+
+# Testes e qualidade de código (instalar com: pip install -r requirements-dev.txt)
+# Veja requirements-dev.txt

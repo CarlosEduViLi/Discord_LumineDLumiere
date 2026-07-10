@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 LOJA_CATEGORIAS = (
     ("básicos", "☕ Básicos e Grãos"),
     ("laticínios", "🥛 Laticínios"),

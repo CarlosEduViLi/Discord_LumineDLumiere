@@ -6,7 +6,9 @@ from collections.abc import Callable
 from utils.paths import CAFE_DATA_PATH
 from utils.storage import JsonStore
 
-from .service import dar_moedas as _dar_moedas, executar_troca as _executar_troca, normalizar_user_data, roubar_atendimento, servir_atendimento
+from .service import dar_moedas as _dar_moedas
+from .service import executar_troca as _executar_troca
+from .service import normalizar_user_data, roubar_atendimento, servir_atendimento
 
 
 class CafeRepository:

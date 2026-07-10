@@ -14,7 +14,8 @@ import discord
 from discord.ext import commands
 
 try:
-    from utils.mood import get_humor_atual as _get_humor_atual, saudacao_do_humor as _saudacao_do_humor
+    from utils.mood import get_humor_atual as _get_humor_atual
+    from utils.mood import saudacao_do_humor as _saudacao_do_humor
     _MOOD_HELP_OK = True
 except Exception:
     _MOOD_HELP_OK = False
