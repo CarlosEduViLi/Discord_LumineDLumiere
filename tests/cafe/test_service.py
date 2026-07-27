@@ -273,7 +273,10 @@ class TestTrabalhar:
 # ---------------------------------------------------------------------------
 
 class TestComprar:
-    def test_sucesso(self):
+    def test_sucesso(self, monkeypatch):
+        # Neutraliza o desconto diário para que o preço seja sempre o base do catálogo.
+        monkeypatch.setattr("cogs.cafe.service.get_categoria_desconto", lambda: "")
+        monkeypatch.setattr("cogs.cafe.service.get_desconto_pct", lambda: 0)
         user = user_com_moedas(500)
         r = comprar(user, ["grao", "5"])
         assert r["ok"] is True
